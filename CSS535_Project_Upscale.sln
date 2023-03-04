@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CSS535_Project_Upscale", "CSS535_Project_Upscale\CSS535_Project_Upscale.vcxproj", "{605E0E46-63B6-4EC8-9357-F4B9CD256D4A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{605E0E46-63B6-4EC8-9357-F4B9CD256D4A}.Debug|x64.ActiveCfg = Debug|x64
+		{605E0E46-63B6-4EC8-9357-F4B9CD256D4A}.Debug|x64.Build.0 = Debug|x64
+		{605E0E46-63B6-4EC8-9357-F4B9CD256D4A}.Release|x64.ActiveCfg = Release|x64
+		{605E0E46-63B6-4EC8-9357-F4B9CD256D4A}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {699C8CAC-B788-4EF0-A1B4-6E3A56082694}
+	EndGlobalSection
+EndGlobal
