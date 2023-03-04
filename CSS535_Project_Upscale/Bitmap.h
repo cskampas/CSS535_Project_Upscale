@@ -1,6 +1,5 @@
 #ifndef Bitmap_H
 #define Bitmap_H
-#include <string>
 
 using namespace std;
 
@@ -11,7 +10,10 @@ public:
 	unsigned short width;
 	unsigned short height;
 
-	bool readFromFile(string filepath);
-	bool writeToFile(string filepath);
+	const int fileHeaderSize = 14;
+	const int metadataHeaderSize = 40;
+
+	bool readFromFile(const char* filepath);
+	bool writeToFile(const char* filepath);
 };
 #endif
