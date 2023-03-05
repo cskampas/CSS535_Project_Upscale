@@ -13,6 +13,8 @@ public:
 	bool readFromFile(const char* filepath);
 	bool writeToFile(const char* filepath);
 
+	int padSide();
+
 	Bitmap();
 	~Bitmap();
 };
