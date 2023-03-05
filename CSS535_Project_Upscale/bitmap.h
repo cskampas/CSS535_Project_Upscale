@@ -6,14 +6,14 @@ using namespace std;
 class Bitmap
 {
 public:
-	unsigned short* imageData;
+	unsigned char* imageData;
 	unsigned short width;
 	unsigned short height;
 
-	const int fileHeaderSize = 14;
-	const int metadataHeaderSize = 40;
-
 	bool readFromFile(const char* filepath);
 	bool writeToFile(const char* filepath);
+
+	Bitmap();
+	~Bitmap();
 };
 #endif
