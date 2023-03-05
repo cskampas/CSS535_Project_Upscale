@@ -104,11 +104,11 @@ __global__ void Bilinear(
 	// "Top" and "Left" here means towards 0, regardless of the reality of the image format
 
 	float sourceRelativeRow = (float)row / (float)nHeight;
-	float sourceRelativeCol = (float)col / (float)nHeight;
+	float sourceRelativeCol = (float)col / (float)nWidth;
 
-	int oCol = (int)(sourceRelativeCol * oWidth + 0.5f);
-	int oRow = (int)(sourceRelativeRow * oHeight + 0.5f);
-	int oIndex = ((oCol + oRow * oWidth) * 3) + oRow * oPad;
+	// int oCol = (int)(sourceRelativeCol * oWidth + 0.5f);
+	// int oRow = (int)(sourceRelativeRow * oHeight + 0.5f);
+	// int oIndex = ((oCol + oRow * oWidth) * 3) + oRow * oPad;
 
 	int oRowTop = (int)(sourceRelativeRow * oHeight);
 	int oRowBot = (int)(sourceRelativeRow * oHeight) + 1;
@@ -141,13 +141,14 @@ __global__ void Bilinear(
 	int oColRightSample = oColRight;
 	int oRowTopSample = oRowTop;
 	int oRowBotSample = oRowBot;
+
 	if (oColLeft < 0)
 	{
 		oColLeftSample = 0;
 	}
-	if (oColRight >= oHeight)
+	if (oColRight >= oWidth)
 	{
-		oColRightSample = oHeight - 1;
+		oColRightSample = oWidth - 1;
 	}
 	if (oRowTop < 0)
 	{
@@ -181,7 +182,7 @@ __global__ void Bilinear(
 		float top = leftLinearFactor * TL[i] + rightLinearFactor * TR[i];
 		float bot = leftLinearFactor * BL[i] + rightLinearFactor * BR[i];
 		float result = topLinearFactor * top + botLinearFactor * bot;
-		dest[index + i] = static_cast<unsigned char>(result);
+		dest[index + i] = static_cast<unsigned char>(oRowBot*128);
 	}
 
 	/*
@@ -290,7 +291,7 @@ void NearestNeighbor(Bitmap* source, Bitmap* dest)
 
 void Bilinear(Bitmap* source, Bitmap* dest)
 {
-	const int NearestNeighborBlockSize = 32;
+	const int BilinearBlockSize = 32;
 	dest->init();
 
 	unsigned short oW = source->width;
@@ -313,7 +314,7 @@ void Bilinear(Bitmap* source, Bitmap* dest)
 
 	cudaMemcpy(original_image_device, original_image, size_matrix, cudaMemcpyHostToDevice);
 
-	dim3 dimBlock(NearestNeighborBlockSize, NearestNeighborBlockSize);
+	dim3 dimBlock(BilinearBlockSize, BilinearBlockSize);
 	dim3 dimGrid((nW / dimBlock.x) + 1, (nH / dimBlock.y) + 1);
 
 	Bilinear<<<dimGrid, dimBlock>>>(original_image_device, oW, oH, oP, upscaled_image_device, nW, nH, nP);
@@ -333,7 +334,7 @@ int main()
 	nearestNeighborImage->height = 295;
 	bilinearImage->width = 1005;
 	bilinearImage->height = 1005;
-	baseImage->readFromFile("TestContent/Test1.bmp");
+	baseImage->readFromFile("TestContent/4px.bmp");
 	NearestNeighbor(baseImage, nearestNeighborImage);
 	Bilinear(baseImage, bilinearImage);
 	nearestNeighborImage->writeToFile("TestContent/Test1NearestNeighbor.bmp");

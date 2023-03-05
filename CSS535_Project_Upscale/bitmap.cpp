@@ -44,7 +44,8 @@ bool Bitmap::readFromFile(const char* filepath)
 	this->width = metadataHeader[4] + (metadataHeader[5] << 8) + (metadataHeader[6] << 16) + (metadataHeader[7] << 24);
 	this->height = metadataHeader[8] + (metadataHeader[9] << 8) + (metadataHeader[10] << 16) + (metadataHeader[11] << 24);
 	this->imageData = new unsigned char[this->imageDataSize()];
-
+	infile.read(reinterpret_cast<char*>(this->imageData), this->imageDataSize());
+	/*
 	for (int y = 0; y < this->height; ++y)
 	{
 		for (int x = 0; x < this->width; ++x)
@@ -59,7 +60,7 @@ bool Bitmap::readFromFile(const char* filepath)
 		}
 
 		infile.ignore(padSize());
-	}
+	}*/
 
 	infile.close();
 
@@ -81,7 +82,7 @@ bool Bitmap::init()
 	int size = this->imageDataSize();
 	for (int i = 0; i < size; ++i)
 	{
-		this->imageData[i] = 0x00;
+		this->imageData[i] = 0;
 	}
 	return true;
 }
