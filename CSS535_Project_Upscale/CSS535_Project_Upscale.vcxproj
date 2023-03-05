@@ -85,6 +85,9 @@
   <ItemGroup>
     <ClCompile Include="bitmap.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="TestContent\Test1.bmp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.0.targets" />
