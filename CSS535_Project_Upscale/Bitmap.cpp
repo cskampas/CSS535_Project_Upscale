@@ -36,11 +36,11 @@ bool Bitmap::readFromFile(const char* filepath)
 				cout << " ";
 			else if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0)
 				cout << "X";
-			else if (pixel[0] == 255)
-				cout << "R";
 			else if (pixel[1] == 255)
-				cout << "G";
+				cout << "R";
 			else if (pixel[2] == 255)
+				cout << "G";
+			else if (pixel[0] == 255)
 				cout << "B";
 			else
 				cout << "?";
