@@ -3,32 +3,49 @@
 #include "device_launch_parameters.h"
 #endif
 
-#include "Bitmap.h"
+#include "bitmap.h"
 
 #include <iostream>
 
 using namespace std;
 
 
-void print_matrix(short* matrix, int size){
-	for(int i =0; i < size; i++){
-		for(int j=0; j < size; j++){
-			cout << matrix[i*size + j] << " ";
+void print_matrix(unsigned char* matrix, unsigned short width, unsigned short height){
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < width; ++x)
+		{
+            unsigned char* pixel = matrix + (y*width*3+x*3);
+
+			if (pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255)
+				cout << " ";
+			else if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0)
+				cout << "X";
+			else if (pixel[2] == 255)
+				cout << "R";
+			else if (pixel[1] == 255)
+				cout << "G";
+			else if (pixel[0] == 255)
+				cout << "B";
+			else
+				cout << "?";
 		}
-		cout << endl; 
+		cout << endl;
 	}
 }
 
 #define BLOCK_SIZE 2
-__global__ void UpscaleImage(short* a, short* b, int n) {
+__global__ void UpscaleImage(unsigned char* a, unsigned char* b, unsigned short width, unsigned short height) {
 
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
 	int row = threadIdx.y + blockIdx.y * blockDim.y;
 
-    int index = col + row * n;
+    int index = (col + row * width) * 3;
 
-	if (row < n && col < n) {
+	if (row < height && col < width) {
 		b[index] = a[index];
+        b[index + 1] = a[index + 1];
+        b[index + 2] = a[index + 2];
 	}
 }
 
@@ -36,27 +53,23 @@ int main()
 {
     cout << "Hello, World!" << endl;
     Bitmap* b = new Bitmap();
-    // b->readFromFile("TestContent\\Test1.bmp");
-    // b->writeToFile("TestContent\\Test2.bmp");
+    b->readFromFile("TestContent/Test1.bmp");
+    // b->writeToFile("TestContent/Test2.bmp");
 
 
 	// ------- Dummy code -----
 	
-    int N = 4;
+    unsigned short width = b->width;
+	unsigned short height = b->height;
     
-	short *original_image, *upscaled_image;
-    short *original_image_device, *upscaled_image_device;
+	unsigned char *original_image, *upscaled_image;
+    unsigned char *original_image_device, *upscaled_image_device;
     
-	int size_matrix = N * N * sizeof(short);
+	int size_matrix = 3 * width * height * sizeof(unsigned char);
 
-    ///////
-	original_image = (short*)malloc(size_matrix);
-	for(short i = 0; i < N * N; i++){
-		original_image[i] = i;
-	}
-    ////
+	original_image = b->imageData;    
 
-    upscaled_image = (short*)malloc(size_matrix);
+    upscaled_image = (unsigned char*)malloc(size_matrix);
 
     cudaMalloc((void**)&original_image_device, size_matrix);
     cudaMalloc((void**)&upscaled_image_device, size_matrix);
@@ -64,13 +77,15 @@ int main()
     cudaMemcpy(original_image_device, original_image, size_matrix, cudaMemcpyHostToDevice);
 
     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 dimGrid(N / dimBlock.x, N / dimBlock.y);
-    UpscaleImage <<<dimGrid, dimBlock >>>(original_image_device, upscaled_image_device, N);
+	dim3 dimGrid(width / dimBlock.x, height / dimBlock.y);
+    UpscaleImage <<<dimGrid, dimBlock >>>(original_image_device, upscaled_image_device, width, height);
 
     cudaMemcpy(upscaled_image, upscaled_image_device, size_matrix, cudaMemcpyDeviceToHost);
 
-    print_matrix(original_image, N);
-    print_matrix(upscaled_image, N);
+    cout << "ORIGINAL" << endl;
+    print_matrix(original_image, width, height);
+    cout << "COPY" << endl;
+    print_matrix(upscaled_image, width, height);
 
     cudaFree(original_image_device);
     cudaFree(upscaled_image_device);
