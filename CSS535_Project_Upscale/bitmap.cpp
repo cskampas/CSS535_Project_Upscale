@@ -88,24 +88,23 @@ bool Bitmap::init()
 
 bool Bitmap::writeToFile(const char* filepath)
 {
+	if (this->imageData == NULL)
+	{
+		return false;
+	}
 	ofstream outfile;
 	cout << "write" << endl;
 	outfile.open(filepath, ios::out | ios::binary);
 	unsigned char header[14];
+	for (int i = 0; i < 14; ++i)
+	{
+		header[i] = 0x00;
+	}
 	header[0] = 0x42;
 	header[1] = 0x4d;
 	header[2] = 0x66;
 	header[3] = 0x75;
-	header[4] = 0x00;
-	header[5] = 0x00;
-	header[6] = 0x00;
-	header[7] = 0x00;
-	header[8] = 0x00;
-	header[9] = 0x00;
 	header[10] = 0x36;
-	header[11] = 0x00;
-	header[12] = 0x00;
-	header[13] = 0x00;
 	outfile.write(reinterpret_cast<char*>(header), 14);
 	unsigned char metadata[40];
 	for (int i = 0; i < 40; ++i)

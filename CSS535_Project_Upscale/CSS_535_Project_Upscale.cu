@@ -9,7 +9,6 @@
 
 using namespace std;
 
-
 void print_matrix(unsigned char* matrix, unsigned short width, unsigned short height, int pad){
 	for (int y = 0; y < height; ++y)
 	{
@@ -81,6 +80,56 @@ __global__ void NearestNeighbor(
 	dest[index + 2] = source[oIndex + 2];
 }
 
+__global__ void Bilinear(
+	unsigned char* source,
+	unsigned short oWidth,
+	unsigned short oHeight,
+	unsigned char oPad,
+	unsigned char* dest,
+	unsigned short nWidth,
+	unsigned short nHeight,
+	unsigned char nPad)
+{
+	int col = threadIdx.x + blockIdx.x * blockDim.x;
+	int row = threadIdx.y + blockIdx.y * blockDim.y;
+
+	if (col >= nWidth || row >= nHeight)
+	{
+		return;
+	}
+
+	int index = ((col + row * nWidth) * 3) + row * nPad;
+
+	/*
+
+	int oCol = (int)(((float)col / (float)nWidth) * oWidth + 0.5f);
+	int oRow = (int)(((float)row / (float)nHeight) * oHeight + 0.5f);
+
+	if (oCol < 0)
+	{
+		oCol = 0;
+	}
+	if (oCol >= oHeight)
+	{
+		oCol = oHeight - 1;
+	}
+	if (oRow < 0)
+	{
+		oRow = 0;
+	}
+	if (oRow >= oHeight)
+	{
+		oRow = oHeight - 1;
+	}
+
+	int oIndex = ((oCol + oRow * oWidth) * 3) + oRow * oPad;
+
+	dest[index] = source[oIndex];
+	dest[index + 1] = source[oIndex + 1];
+	dest[index + 2] = source[oIndex + 2];
+	*/
+}
+
 #define BLOCK_SIZE 2
 __global__ void CopyImage(unsigned char* a, unsigned char* b, unsigned short width, unsigned short height, int pad) {
 
@@ -132,15 +181,56 @@ void NearestNeighbor(Bitmap* source, Bitmap* dest)
 	cudaFree(upscaled_image_device);
 }
 
+void Bilinear(Bitmap* source, Bitmap* dest)
+{
+	const int NearestNeighborBlockSize = 32;
+	dest->init();
+
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
+	unsigned char oP = source->padSize();
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
+	unsigned char nP = dest->padSize();
+
+	unsigned char* original_image, * upscaled_image;
+	unsigned char* original_image_device, * upscaled_image_device;
+
+	int size_matrix = source->imageDataSize();
+	int size_dest = dest->imageDataSize();
+	original_image = source->imageData;
+	upscaled_image = dest->imageData;
+
+	cudaMalloc((void**)&original_image_device, size_matrix);
+	cudaMalloc((void**)&upscaled_image_device, size_dest);
+
+	cudaMemcpy(original_image_device, original_image, size_matrix, cudaMemcpyHostToDevice);
+
+	dim3 dimBlock(NearestNeighborBlockSize, NearestNeighborBlockSize);
+	dim3 dimGrid((nW / dimBlock.x) + 1, (nH / dimBlock.y) + 1);
+
+	Bilinear<<<dimGrid, dimBlock>>>(original_image_device, oW, oH, oP, upscaled_image_device, nW, nH, nP);
+
+	cudaMemcpy(upscaled_image, upscaled_image_device, size_dest, cudaMemcpyDeviceToHost);
+
+	cudaFree(original_image_device);
+	cudaFree(upscaled_image_device);
+}
+
 int main()
 {
-    Bitmap* b = new Bitmap();
-	Bitmap* result = new Bitmap();
-	result->width = 295;
-	result->height = 295;
-	b->readFromFile("TestContent/Test1.bmp");
-	NearestNeighbor(b, result);
-	result->writeToFile("TestContent/Test1NearestNeighbor.bmp");
+    Bitmap* baseImage = new Bitmap();
+	Bitmap* nearestNeighborImage = new Bitmap();
+	Bitmap* bilinearImage = new Bitmap();
+	nearestNeighborImage->width = 295;
+	nearestNeighborImage->height = 295;
+	bilinearImage->width = 1005;
+	bilinearImage->height = 1005;
+	baseImage->readFromFile("TestContent/Test1.bmp");
+	NearestNeighbor(baseImage, nearestNeighborImage);
+	Bilinear(baseImage, bilinearImage);
+	nearestNeighborImage->writeToFile("TestContent/Test1NearestNeighbor.bmp");
+	bilinearImage->writeToFile("TestContent/Test1Bilinear.bmp");
 
 	return 0;
 
