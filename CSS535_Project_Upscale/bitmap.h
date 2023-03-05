@@ -11,9 +11,13 @@ public:
 	unsigned short height;
 
 	bool readFromFile(const char* filepath);
+	bool init();
 	bool writeToFile(const char* filepath);
 
-	int padSide();
+	unsigned int imageDataSize();
+	unsigned char padSize();
+	static unsigned int imageDataSize(unsigned short width, unsigned short height);
+	static unsigned char padSize(unsigned short width);
 
 	Bitmap();
 	~Bitmap();

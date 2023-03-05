@@ -34,8 +34,48 @@ void print_matrix(unsigned char* matrix, unsigned short width, unsigned short he
 	}
 }
 
+__global__ void NearestNeighbor(unsigned char* source,	unsigned short oWidth, unsigned short oHeight, int oPad,
+	unsigned char* dest, unsigned short nWidth, unsigned short nHeight, int nPad)
+{
+	int col = threadIdx.x + blockIdx.x * blockDim.x;
+	int row = threadIdx.y + blockIdx.y * blockDim.y;
+
+	if (col > nWidth || row > nHeight)
+	{
+		return;
+	}
+
+	int index = ((col + row * nWidth) * 3) + row * nPad;
+
+	int oCol = (int)(((float)col / (float)nWidth) * oWidth + 0.5f);
+	int oRow = (int)(((float)row / (float)nHeight) * oHeight + 0.5f);
+
+	if (oCol == -1)
+	{
+		oCol = 0;
+	}
+	if (oCol == oHeight)
+	{
+		oCol = oHeight - 1;
+	}
+	if (oRow == -1)
+	{
+		oRow = 0;
+	}
+	if (oRow == oHeight)
+	{
+		oRow = oHeight - 1;
+	}
+
+	int oIndex = ((oCol + oRow * oWidth) * 3) + oRow * oPad;
+
+	dest[index] = source[oIndex];
+	dest[index + 1] = source[oIndex + 1];
+	dest[index + 2] = source[oIndex + 2];
+}
+
 #define BLOCK_SIZE 2
-__global__ void UpscaleImage(unsigned char* a, unsigned char* b, unsigned short width, unsigned short height, int pad) {
+__global__ void CopyImage(unsigned char* a, unsigned char* b, unsigned short width, unsigned short height, int pad) {
 
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
 	int row = threadIdx.y + blockIdx.y * blockDim.y;
@@ -49,51 +89,130 @@ __global__ void UpscaleImage(unsigned char* a, unsigned char* b, unsigned short 
 	}
 }
 
+void NearestNeighbor(Bitmap* source, Bitmap* dest)
+{
+	const int NearestNeighborBlockSize = 32;
+	dest->init();
+
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
+	unsigned char oP = source->padSize();
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
+	unsigned char nP = dest->padSize();
+
+	unsigned char* original_image, * upscaled_image;
+	unsigned char* original_image_device, * upscaled_image_device;
+
+	int size_matrix = source->imageDataSize();
+	int size_dest = dest->imageDataSize();
+	original_image = source->imageData;
+	upscaled_image = dest->imageData;
+
+	cudaMalloc((void**)&original_image_device, size_matrix);
+	cudaMalloc((void**)&upscaled_image_device, size_dest);
+
+	cudaMemcpy(original_image_device, original_image, size_matrix, cudaMemcpyHostToDevice);
+
+	dim3 dimBlock(NearestNeighborBlockSize, NearestNeighborBlockSize);
+	dim3 dimGrid((nW / dimBlock.x) + 1, (nH / dimBlock.y) + 1);
+
+	NearestNeighbor <<<dimGrid, dimBlock>>>(original_image_device, oW, oH, oP, upscaled_image_device, nW, nH, nP);
+
+	cudaMemcpy(upscaled_image, upscaled_image_device, size_dest, cudaMemcpyDeviceToHost);
+
+	cudaFree(original_image_device);
+	cudaFree(upscaled_image_device);
+}
+
 int main()
 {
-    cout << "Hello, World!" << endl;
     Bitmap* b = new Bitmap();
-    b->readFromFile("TestContent/Test1.bmp");
-    b->writeToFile("TestContent/Test2.bmp");
+	Bitmap* result = new Bitmap();
+	result->width = 295;
+	result->height = 295;
+	b->readFromFile("TestContent/Test1.bmp");
+	NearestNeighbor(b, result);
+	result->writeToFile("TestContent/Test1NearestNeighbor.bmp");
 
+	return 0;
 
-	// ------- Dummy code -----
+	// result->init();
+
+	// int oW = b->width;
+	// int oH = b->height;
+	// int oP = b->padSize();
+	// int nW = result->width;
+	// int nH = result->height;
+	// int nP = result->padSize();
+
+    // b->writeToFile("TestContent/Test2.bmp");
 	
-    unsigned short width = b->width;
-	unsigned short height = b->height;
+    // unsigned short width = b->width;
+	// unsigned short height = b->height;
     
-	unsigned char *original_image, *upscaled_image;
-    unsigned char *original_image_device, *upscaled_image_device;
+	// unsigned char *original_image, *upscaled_image;
+    // unsigned char *original_image_device, *upscaled_image_device;
     
-	int size_matrix = 3 * width * height * sizeof(unsigned char) + height * b->padSide();
+	// int size_matrix = b->imageDataSize();
+	// int size_dest = result->imageDataSize();
+	// original_image = b->imageData;
+	// upscaled_image = result->imageData;
 
-	original_image = b->imageData;    
+    // upscaled_image = (unsigned char*)malloc(size_matrix);
 
-    upscaled_image = (unsigned char*)malloc(size_matrix);
+    // cudaMalloc((void**)&original_image_device, size_matrix);
+    // cudaMalloc((void**)&upscaled_image_device, size_dest);
 
-    cudaMalloc((void**)&original_image_device, size_matrix);
-    cudaMalloc((void**)&upscaled_image_device, size_matrix);
+    // cudaMemcpy(original_image_device, original_image, size_matrix, cudaMemcpyHostToDevice);
 
-    cudaMemcpy(original_image_device, original_image, size_matrix, cudaMemcpyHostToDevice);
+    //dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
+	//dim3 dimGrid(width / dimBlock.x, height / dimBlock.y);
+    //CopyImage <<<dimGrid, dimBlock >>>(original_image_device, upscaled_image_device, width, height, b->padSize());
 
-    dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 dimGrid(width / dimBlock.x, height / dimBlock.y);
-    UpscaleImage <<<dimGrid, dimBlock >>>(original_image_device, upscaled_image_device, width, height, b->padSide());
+	// dim3 dimBlock(32, 32);
+	// dim3 dimGrid((nW / dimBlock.x) + 1, (nH / dimBlock.y) + 1);
+	// NearestNeighbor <<<dimGrid, dimBlock >>> (original_image_device, oW, oH, oP, upscaled_image_device, nW, nH, nP);
 
-    cudaMemcpy(upscaled_image, upscaled_image_device, size_matrix, cudaMemcpyDeviceToHost);
-
+    // cudaMemcpy(upscaled_image, upscaled_image_device, size_dest, cudaMemcpyDeviceToHost);
+	/*
     cout << "ORIGINAL" << endl;
-    print_matrix(original_image, width, height, b->padSide());
+    print_matrix(original_image, width, height, b->padSize());
     cout << "COPY" << endl;
-    print_matrix(upscaled_image, width, height, b->padSide());
+    print_matrix(upscaled_image, width, height, b->padSize());
+	*/
 
-    cudaFree(original_image_device);
-    cudaFree(upscaled_image_device);
+	// result->writeToFile("TestContent/Test1NearestNeighbor.bmp");
 
-    free(original_image);
-    free(upscaled_image);
+    // cudaFree(original_image_device);
+    // cudaFree(upscaled_image_device);
 
 	// ------------------------
 
-    return 0;
+    // return 0;
 }
+
+// Kernel test code
+/*
+unsigned char r = index % 256;
+unsigned char g = (index / 256) % 256;
+unsigned char b = (index / 65536) % 256;
+
+dest[index] = b;
+dest[index + 1] = g;
+dest[index + 2] = r;
+*/
+
+/*
+int oCol = (int)(((float)col / (float)nWidth) * oWidth + 0.5f);
+int oRow = (int)(((float)row / (float)nHeight) * oHeight + 0.5f);
+
+int oIndex = ((oCol + oRow * nWidth) * 3) + oRow * oPad;
+
+dest[index] = source[oIndex];
+dest[index + 1] = source[oIndex + 1];
+dest[index + 2] = source[oIndex + 2];
+*/
+
+// int oCol = col / 4;
+// int oRow = row / 4;

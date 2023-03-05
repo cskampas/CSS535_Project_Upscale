@@ -5,9 +5,24 @@
 
 using namespace std;
 
-int Bitmap::padSide()
+unsigned int Bitmap::imageDataSize()
 {
-	return  (4 - (this->width * 3) % 4) % 4;
+	return Bitmap::imageDataSize(this->width, this->height);
+}
+
+unsigned char Bitmap::padSize()
+{
+	return Bitmap::padSize(this->width);
+}
+
+unsigned int Bitmap::imageDataSize(unsigned short width, unsigned short height)
+{
+	return width * height * 3 + height * Bitmap::padSize(width);
+}
+
+unsigned char Bitmap::padSize(unsigned short width)
+{
+	return  (4 - (width * 3) % 4) % 4;
 }
 
 bool Bitmap::readFromFile(const char* filepath)
@@ -28,7 +43,7 @@ bool Bitmap::readFromFile(const char* filepath)
 	infile.read(reinterpret_cast<char*>(metadataHeader), 40);
 	this->width = metadataHeader[4] + (metadataHeader[5] << 8) + (metadataHeader[6] << 16) + (metadataHeader[7] << 24);
 	this->height = metadataHeader[8] + (metadataHeader[9] << 8) + (metadataHeader[10] << 16) + (metadataHeader[11] << 24);
-	this->imageData = new unsigned char[this->width * this->height * 3];
+	this->imageData = new unsigned char[this->imageDataSize()];
 
 	for (int y = 0; y < this->height; ++y)
 	{
@@ -37,17 +52,37 @@ bool Bitmap::readFromFile(const char* filepath)
 			unsigned char pixel[3];
 			infile.read(reinterpret_cast<char*>(pixel), 3);
 
-			int index = y*width*3+x*3;
+			int index = y * width * 3 + x * 3;
 			imageData[index] = pixel[0];
-        	imageData[index + 1] = pixel[1];
+			imageData[index + 1] = pixel[1];
         	imageData[index + 2] = pixel[2];
 		}
 
-		infile.ignore(padSide());
+		infile.ignore(padSize());
 	}
 
 	infile.close();
 
+	return true;
+}
+
+bool Bitmap::init()
+{
+	if (this->imageData != NULL)
+	{
+		delete[] this->imageData;
+	}
+	if (this->width == 0 || this->height == 0)
+	{
+		this->imageData = NULL;
+		return false;
+	}
+	this->imageData = new unsigned char[this->imageDataSize()];
+	int size = this->imageDataSize();
+	for (int i = 0; i < size; ++i)
+	{
+		this->imageData[i] = 0;
+	}
 	return true;
 }
 
@@ -89,10 +124,10 @@ bool Bitmap::writeToFile(const char* filepath)
 	metadata[12] = 0x1;
 	metadata[14] = 0x18;
 	outfile.write(reinterpret_cast<char*>(metadata), 40);
-	int size = 3 * sizeof(char) * this->width * this->height + this->width * padSide();
+	int size = 3 * sizeof(char) * this->width * this->height + this->width * padSize();
 	outfile.write(reinterpret_cast<char*>(imageData), size);
 	outfile.close();
-	return false;
+	return true;
 }
 
 Bitmap::Bitmap()
