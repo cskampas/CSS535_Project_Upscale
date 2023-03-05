@@ -8,8 +8,10 @@ using namespace std;
 bool Bitmap::readFromFile(const char* filepath)
 {
 	cout << "read" << endl;
-	cout << sizeof(unsigned short) << endl;
-	cout << sizeof(char) << endl;
+	if (this->imageData != NULL)
+	{
+		delete[] this->imageData;
+	}
 	ifstream infile;
 	infile.open(filepath, ios::in | ios::binary);
 	if (!infile.is_open())
@@ -72,6 +74,6 @@ Bitmap::~Bitmap()
 {
 	if (this->imageData != NULL)
 	{
-		delete[] imageData;
+		delete[] this->imageData;
 	}
 }
