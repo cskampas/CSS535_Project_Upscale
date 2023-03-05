@@ -34,13 +34,20 @@ void print_matrix(unsigned char* matrix, unsigned short width, unsigned short he
 	}
 }
 
-__global__ void NearestNeighbor(unsigned char* source,	unsigned short oWidth, unsigned short oHeight, int oPad,
-	unsigned char* dest, unsigned short nWidth, unsigned short nHeight, int nPad)
+__global__ void NearestNeighbor(
+	unsigned char* source,
+	unsigned short oWidth,
+	unsigned short oHeight,
+	unsigned char oPad,
+	unsigned char* dest,
+	unsigned short nWidth,
+	unsigned short nHeight,
+	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
 	int row = threadIdx.y + blockIdx.y * blockDim.y;
 
-	if (col > nWidth || row > nHeight)
+	if (col >= nWidth || row >= nHeight)
 	{
 		return;
 	}
@@ -50,19 +57,19 @@ __global__ void NearestNeighbor(unsigned char* source,	unsigned short oWidth, un
 	int oCol = (int)(((float)col / (float)nWidth) * oWidth + 0.5f);
 	int oRow = (int)(((float)row / (float)nHeight) * oHeight + 0.5f);
 
-	if (oCol == -1)
+	if (oCol < 0)
 	{
 		oCol = 0;
 	}
-	if (oCol == oHeight)
+	if (oCol >= oHeight)
 	{
 		oCol = oHeight - 1;
 	}
-	if (oRow == -1)
+	if (oRow < 0)
 	{
 		oRow = 0;
 	}
-	if (oRow == oHeight)
+	if (oRow >= oHeight)
 	{
 		oRow = oHeight - 1;
 	}
