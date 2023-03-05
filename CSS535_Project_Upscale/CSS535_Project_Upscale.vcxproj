@@ -80,13 +80,13 @@
     <CudaCompile Include="CSS_535_Project_Upscale.cu" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="TestContent\Test1.bmp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="bitmap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bitmap.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="TestContent\Test1.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -14,9 +14,8 @@ bool Bitmap::readFromFile(const char* filepath)
 	{
 		cout << "error" << endl;
 	}
-	unsigned char* fileHeader = new unsigned char[14];
-	char* test = new char[14];
-	infile.read(test, 14);
+	unsigned char* fileHeader = new unsigned char[Bitmap::fileHeaderSize];
+	infile.read(reinterpret_cast<char*>(fileHeader), Bitmap::fileHeaderSize);
 	infile.close();
 	cout << fileHeader << endl;
 	delete[] fileHeader;
