@@ -80,9 +80,6 @@
     <CudaCompile Include="CSS_535_Project_Upscale.cu" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="TestContent\Test1.bmp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="bitmap.h" />
   </ItemGroup>
   <ItemGroup>
