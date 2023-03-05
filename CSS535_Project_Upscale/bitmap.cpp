@@ -27,7 +27,7 @@ unsigned char Bitmap::padSize(unsigned short width)
 
 bool Bitmap::readFromFile(const char* filepath)
 {
-	cout << "read" << endl;
+	cout << "read " << filepath << endl;
 	if (this->imageData != NULL)
 	{
 		delete[] this->imageData;
@@ -81,7 +81,7 @@ bool Bitmap::init()
 	int size = this->imageDataSize();
 	for (int i = 0; i < size; ++i)
 	{
-		this->imageData[i] = 0;
+		this->imageData[i] = 0x00;
 	}
 	return true;
 }
@@ -93,7 +93,7 @@ bool Bitmap::writeToFile(const char* filepath)
 		return false;
 	}
 	ofstream outfile;
-	cout << "write" << endl;
+	cout << "write " << filepath << endl;
 	outfile.open(filepath, ios::out | ios::binary);
 	unsigned char header[14];
 	for (int i = 0; i < 14; ++i)
