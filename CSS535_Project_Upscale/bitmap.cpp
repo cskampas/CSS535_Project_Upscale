@@ -34,21 +34,27 @@ bool Bitmap::readFromFile(const char* filepath)
 		{
 			unsigned char pixel[3];
 			infile.read(reinterpret_cast<char*>(pixel), 3);
-			if (pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255)
-				cout << " ";
-			else if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0)
-				cout << "X";
-			else if (pixel[2] == 255)
-				cout << "R";
-			else if (pixel[1] == 255)
-				cout << "G";
-			else if (pixel[0] == 255)
-				cout << "B";
-			else
-				cout << "?";
+
+			int index = y*width*3+x*3;
+			imageData[index] = pixel[0];
+        	imageData[index + 1] = pixel[1];
+        	imageData[index + 2] = pixel[2];
+
+			// if (pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255)
+			// 	cout << " ";
+			// else if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0)
+			// 	cout << "X";
+			// else if (pixel[2] == 255)
+			// 	cout << "R";
+			// else if (pixel[1] == 255)
+			// 	cout << "G";
+			// else if (pixel[0] == 255)
+			// 	cout << "B";
+			// else
+			// 	cout << "?";
 		}
 		infile.ignore(padsize);
-		cout << endl;
+		// cout << endl;
 	}
 
 	infile.close();
