@@ -60,3 +60,18 @@ bool Bitmap::writeToFile(const char* filepath)
 	cout << "write" << endl;
 	return false;
 }
+
+Bitmap::Bitmap()
+{
+	this->width = 0;
+	this->height = 0;
+	this->imageData = NULL;
+}
+
+Bitmap::~Bitmap()
+{
+	if (this->imageData != NULL)
+	{
+		delete[] imageData;
+	}
+}
