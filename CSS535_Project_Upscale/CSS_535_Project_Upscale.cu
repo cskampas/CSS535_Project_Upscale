@@ -97,6 +97,117 @@ __global__ void Bilinear(
 	{
 		return;
 	}
+	int index = ((col + row * nWidth) * 3) + row * nPad;
+
+	// Find left and right pixel from row above and row below
+	// "Top" and "Left" here means towards 0, regardless of the reality of the image format
+
+	float sourceRelativeRow = (float)row / (float)nHeight;
+	float sourceRelativeCol = (float)col / (float)nWidth;
+
+	// int oCol = (int)(sourceRelativeCol * oWidth + 0.5f);
+	// int oRow = (int)(sourceRelativeRow * oHeight + 0.5f);
+	// int oIndex = ((oCol + oRow * oWidth) * 3) + oRow * oPad;
+
+	int oRowTop = (int)(sourceRelativeRow * oHeight);
+	int oRowBot = (int)(sourceRelativeRow * oHeight) + 1;
+	int oColLeft = (int)(sourceRelativeCol * oWidth);
+	int oColRight = (int)(sourceRelativeCol * oWidth) + 1;
+	/*
+	if (oColLeft < 0)
+	{
+		oColLeft = 0;
+	}
+	if (oColRight >= oHeight)
+	{
+		oColRight = oHeight - 1;
+	}
+	if (oRowTop < 0)
+	{
+		oRowTop = 0;
+	}
+	if (oRowBot >= oHeight)
+	{
+		oRowBot = oHeight - 1;
+	}*/
+
+	// Bilinear calculation
+	unsigned char topLeft[3];
+	unsigned char topRight[3];
+	unsigned char botLeft[3];
+	unsigned char botRight[3];
+	int oColLeftSample = oColLeft;
+	int oColRightSample = oColRight;
+	int oRowTopSample = oRowTop;
+	int oRowBotSample = oRowBot;
+
+	if (oColLeft < 0)
+	{
+		oColLeftSample = 0;
+	}
+	if (oColRight >= oWidth)
+	{
+		oColRightSample = oWidth - 1;
+	}
+	if (oRowTop < 0)
+	{
+		oRowTopSample = 0;
+	}
+	if (oRowBot >= oHeight)
+	{
+		oRowBotSample = oHeight - 1;
+	}
+	int oIndexTL = ((oColLeftSample + oRowTopSample * oWidth) * 3) + oRowTopSample * oPad;
+	int oIndexTR = ((oColRightSample + oRowTopSample * oWidth) * 3) + oRowTopSample * oPad;
+	int oIndexBL = ((oColLeftSample + oRowBotSample * oWidth) * 3) + oRowBotSample * oPad;
+	int oIndexBR = ((oColRightSample + oRowBotSample * oWidth) * 3) + oRowBotSample * oPad;
+	unsigned char TL[3];
+	unsigned char TR[3];
+	unsigned char BL[3];
+	unsigned char BR[3];
+
+	float x = sourceRelativeCol * oWidth;
+	float y = sourceRelativeRow * oHeight;
+	float leftLinearFactor = oColRight - x;
+	float rightLinearFactor = x - oColLeft;
+	float topLinearFactor = oRowBot - y;
+	float botLinearFactor = y - oRowTop;
+
+	for (int i = 0; i < 3; ++i)
+	{
+		TL[i] = source[oIndexTL + i];
+		TR[i] = source[oIndexTR + i];
+		BL[i] = source[oIndexBL + i];
+		BR[i] = source[oIndexBR + i];
+
+		float top = leftLinearFactor * TL[i] + rightLinearFactor * TR[i];
+		float bot = leftLinearFactor * BL[i] + rightLinearFactor * BR[i];
+		float result = topLinearFactor * top + botLinearFactor * bot;
+		dest[index + i] = static_cast<unsigned char>(result);
+	}
+}
+
+void BilinearCPUKernel(
+	unsigned int row,
+	unsigned int col,
+	unsigned char* source,
+	unsigned short oWidth,
+	unsigned short oHeight,
+	unsigned char oPad,
+	unsigned char* dest,
+	unsigned short nWidth,
+	unsigned short nHeight,
+	unsigned char nPad)
+{
+	if (col >= nWidth || row >= nHeight)
+	{
+		return;
+	}
+
+	if (row == 990 && col == 10)
+	{
+		cout << "test" << endl;
+	}
 
 	int index = ((col + row * nWidth) * 3) + row * nPad;
 
@@ -167,10 +278,12 @@ __global__ void Bilinear(
 	unsigned char BL[3];
 	unsigned char BR[3];
 
-	float leftLinearFactor = sourceRelativeCol - oColLeft;
-	float rightLinearFactor = oColRight - sourceRelativeCol;
-	float topLinearFactor = sourceRelativeRow - oRowTop;
-	float botLinearFactor = oRowBot - sourceRelativeRow;
+	float x = sourceRelativeCol * oWidth;
+	float y = sourceRelativeRow * oHeight;
+	float leftLinearFactor = oColRight - x;
+	float rightLinearFactor = x - oColLeft;
+	float topLinearFactor = oRowBot - y;
+	float botLinearFactor = y - oRowTop;
 
 	for (int i = 0; i < 3; ++i)
 	{
@@ -182,217 +295,8 @@ __global__ void Bilinear(
 		float top = leftLinearFactor * TL[i] + rightLinearFactor * TR[i];
 		float bot = leftLinearFactor * BL[i] + rightLinearFactor * BR[i];
 		float result = topLinearFactor * top + botLinearFactor * bot;
-		dest[index + i] = static_cast<unsigned char>(oRowBot * 128);
+		dest[index + i] = static_cast<unsigned char>(result);
 	}
-
-	/*
-	float bTop = leftLinearFactor * TL[0] + rightLinearFactor * TR[0];
-	float gTop = leftLinearFactor * TL[1] + rightLinearFactor * TR[1];
-	float rTop = leftLinearFactor * TL[2] + rightLinearFactor * TR[2];
-
-	float bBot = leftLinearFactor * BL[0] + rightLinearFactor * BR[0];
-	float gBot = leftLinearFactor * BL[1] + rightLinearFactor * BR[1];
-	float rBot = leftLinearFactor * BL[2] + rightLinearFactor * BR[2];
-
-	float b = topLinearFactor * bTop + botLinearFactor * bBot;
-	float g = topLinearFactor * gTop + botLinearFactor * gBot;
-	float r = topLinearFactor * rTop + botLinearFactor * rBot;
-
-
-	dest[index] = (unsigned char)bTop;
-	dest[index + 1] = (unsigned char)gTop;
-	dest[index + 2] = (unsigned char)rTop;
-	*/
-	/*
-	dest[index] = (unsigned char)b;
-	dest[index + 1] = (unsigned char)g;
-	dest[index + 2] = (unsigned char)r;
-	*/
-	/*
-
-	int oCol = (int)(((float)col / (float)nWidth) * oWidth + 0.5f);
-	int oRow = (int)(((float)row / (float)nHeight) * oHeight + 0.5f);
-
-	if (oCol < 0)
-	{
-		oCol = 0;
-	}
-	if (oCol >= oHeight)
-	{
-		oCol = oHeight - 1;
-	}
-	if (oRow < 0)
-	{
-		oRow = 0;
-	}
-	if (oRow >= oHeight)
-	{
-		oRow = oHeight - 1;
-	}
-
-	int oIndex = ((oCol + oRow * oWidth) * 3) + oRow * oPad;
-
-	dest[index] = source[oIndex];
-	dest[index + 1] = source[oIndex + 1];
-	dest[index + 2] = source[oIndex + 2];
-	*/
-}
-
-void BilinearCPUKernel(
-	unsigned int row,
-	unsigned int col,
-	unsigned char* source,
-	unsigned short oWidth,
-	unsigned short oHeight,
-	unsigned char oPad,
-	unsigned char* dest,
-	unsigned short nWidth,
-	unsigned short nHeight,
-	unsigned char nPad)
-{
-if (col >= nWidth || row >= nHeight)
-{
-	return;
-}
-
-int index = ((col + row * nWidth) * 3) + row * nPad;
-
-// Find left and right pixel from row above and row below
-// "Top" and "Left" here means towards 0, regardless of the reality of the image format
-
-float sourceRelativeRow = (float)row / (float)nHeight;
-float sourceRelativeCol = (float)col / (float)nWidth;
-
-// int oCol = (int)(sourceRelativeCol * oWidth + 0.5f);
-// int oRow = (int)(sourceRelativeRow * oHeight + 0.5f);
-// int oIndex = ((oCol + oRow * oWidth) * 3) + oRow * oPad;
-
-int oRowTop = (int)(sourceRelativeRow * oHeight);
-int oRowBot = (int)(sourceRelativeRow * oHeight) + 1;
-int oColLeft = (int)(sourceRelativeCol * oWidth);
-int oColRight = (int)(sourceRelativeCol * oWidth) + 1;
-/*
-if (oColLeft < 0)
-{
-	oColLeft = 0;
-}
-if (oColRight >= oHeight)
-{
-	oColRight = oHeight - 1;
-}
-if (oRowTop < 0)
-{
-	oRowTop = 0;
-}
-if (oRowBot >= oHeight)
-{
-	oRowBot = oHeight - 1;
-}*/
-
-// Bilinear calculation
-unsigned char topLeft[3];
-unsigned char topRight[3];
-unsigned char botLeft[3];
-unsigned char botRight[3];
-int oColLeftSample = oColLeft;
-int oColRightSample = oColRight;
-int oRowTopSample = oRowTop;
-int oRowBotSample = oRowBot;
-
-if (oColLeft < 0)
-{
-	oColLeftSample = 0;
-}
-if (oColRight >= oWidth)
-{
-	oColRightSample = oWidth - 1;
-}
-if (oRowTop < 0)
-{
-	oRowTopSample = 0;
-}
-if (oRowBot >= oHeight)
-{
-	oRowBotSample = oHeight - 1;
-}
-int oIndexTL = ((oColLeftSample + oRowTopSample * oWidth) * 3) + oRowTopSample * oPad;
-int oIndexTR = ((oColRightSample + oRowTopSample * oWidth) * 3) + oRowTopSample * oPad;
-int oIndexBL = ((oColLeftSample + oRowBotSample * oWidth) * 3) + oRowBotSample * oPad;
-int oIndexBR = ((oColRightSample + oRowBotSample * oWidth) * 3) + oRowBotSample * oPad;
-unsigned char TL[3];
-unsigned char TR[3];
-unsigned char BL[3];
-unsigned char BR[3];
-
-float leftLinearFactor = sourceRelativeCol - oColLeft;
-float rightLinearFactor = oColRight - sourceRelativeCol;
-float topLinearFactor = sourceRelativeRow - oRowTop;
-float botLinearFactor = oRowBot - sourceRelativeRow;
-
-for (int i = 0; i < 3; ++i)
-{
-	TL[i] = source[oIndexTL + i];
-	TR[i] = source[oIndexTR + i];
-	BL[i] = source[oIndexBL + i];
-	BR[i] = source[oIndexBR + i];
-
-	float top = leftLinearFactor * TL[i] + rightLinearFactor * TR[i];
-	float bot = leftLinearFactor * BL[i] + rightLinearFactor * BR[i];
-	float result = topLinearFactor * top + botLinearFactor * bot;
-	dest[index + i] = static_cast<unsigned char>(result);
-}
-
-/*
-float bTop = leftLinearFactor * TL[0] + rightLinearFactor * TR[0];
-float gTop = leftLinearFactor * TL[1] + rightLinearFactor * TR[1];
-float rTop = leftLinearFactor * TL[2] + rightLinearFactor * TR[2];
-
-float bBot = leftLinearFactor * BL[0] + rightLinearFactor * BR[0];
-float gBot = leftLinearFactor * BL[1] + rightLinearFactor * BR[1];
-float rBot = leftLinearFactor * BL[2] + rightLinearFactor * BR[2];
-
-float b = topLinearFactor * bTop + botLinearFactor * bBot;
-float g = topLinearFactor * gTop + botLinearFactor * gBot;
-float r = topLinearFactor * rTop + botLinearFactor * rBot;
-
-
-dest[index] = (unsigned char)bTop;
-dest[index + 1] = (unsigned char)gTop;
-dest[index + 2] = (unsigned char)rTop;
-*/
-/*
-dest[index] = (unsigned char)b;
-dest[index + 1] = (unsigned char)g;
-dest[index + 2] = (unsigned char)r;
-*/
-/*
-
-int oCol = (int)(((float)col / (float)nWidth) * oWidth + 0.5f);
-int oRow = (int)(((float)row / (float)nHeight) * oHeight + 0.5f);
-
-if (oCol < 0)
-{
-	oCol = 0;
-}
-if (oCol >= oHeight)
-{
-	oCol = oHeight - 1;
-}
-if (oRow < 0)
-{
-	oRow = 0;
-}
-if (oRow >= oHeight)
-{
-	oRow = oHeight - 1;
-}
-
-int oIndex = ((oCol + oRow * oWidth) * 3) + oRow * oPad;
-
-dest[index] = source[oIndex];
-dest[index + 1] = source[oIndex + 1];
-dest[index + 2] = source[oIndex + 2];
-*/
 }
 
 void BilinearCPU(
@@ -524,6 +428,7 @@ int main()
 	bilinearImage->height = 1005;
 	baseImage->readFromFile("TestContent/Test1.bmp");
 	NearestNeighbor(baseImage, nearestNeighborImage);
+	/*
 	const int BilinearBlockSize = 32;
 	bilinearImage->init();
 
@@ -546,10 +451,11 @@ int main()
 	//dim3 dimGrid((nW / dimBlock.x) + 1, (nH / dimBlock.y) + 1);
 	//uint3 dB = dimBlock;
 	//uint3 dG = dimGrid;
+	*/
 
-	BilinearCPU(32, 32, (nW / 32) + 1, (nH / 32) + 1, original_image, oW, oH, oP, upscaled_image, nW, nH, nP);
+	// BilinearCPU(32, 32, (nW / 32) + 1, (nH / 32) + 1, original_image, oW, oH, oP, upscaled_image, nW, nH, nP);
 
-	//Bilinear(baseImage, bilinearImage);
+	Bilinear(baseImage, bilinearImage);
 	nearestNeighborImage->writeToFile("TestContent/Test1NearestNeighbor.bmp");
 	bilinearImage->writeToFile("TestContent/Test1Bilinear.bmp");
 
