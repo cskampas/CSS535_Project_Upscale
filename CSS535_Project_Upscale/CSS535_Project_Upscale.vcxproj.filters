@@ -8,8 +8,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bitmap.h" />
+    <ClInclude Include="debugFeatures.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bitmap.cpp" />
+    <ClCompile Include="debugFeatures.cpp" />
   </ItemGroup>
 </Project>
