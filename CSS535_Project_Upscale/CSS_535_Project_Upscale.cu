@@ -55,8 +55,8 @@ __global__ void NearestNeighbor(
 
 	int index = ((col + row * nWidth) * 3) + row * nPad;
 
-	int oCol = (int)(((float)col / (float)nWidth) * oWidth + 0.5f);
-	int oRow = (int)(((float)row / (float)nHeight) * oHeight + 0.5f);
+	int oCol = (int)(((float)col / (float)nWidth) * oWidth);
+	int oRow = (int)(((float)row / (float)nHeight) * oHeight);
 
 	if (oCol < 0)
 	{
