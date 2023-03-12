@@ -421,7 +421,7 @@ int main()
 	bilinearImage->height = 2005;
 	bicubicImage->width = 2005;
 	bicubicImage->height = 2005;
-	baseImage->readFromFile("TestContent/4px.bmp");
+	baseImage->readFromFile("TestContent/Test1.bmp");
 	DebugFeatures::stopX = 990;
 	DebugFeatures::stopY = 10;
 	DebugFeatures::emulator(baseImage, debugImage);
