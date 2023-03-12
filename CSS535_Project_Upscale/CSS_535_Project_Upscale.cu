@@ -422,8 +422,8 @@ int main()
 	bicubicImage->width = 2005;
 	bicubicImage->height = 2005;
 	baseImage->readFromFile("TestContent/Test1.bmp");
-	DebugFeatures::stopX = 990;
-	DebugFeatures::stopY = 10;
+	DebugFeatures::stopX = 8;
+	DebugFeatures::stopY = 4;
 	DebugFeatures::emulator(baseImage, debugImage);
 	NearestNeighbor(baseImage, nearestNeighborImage);
 	Bilinear(baseImage, bilinearImage);
