@@ -55,8 +55,8 @@ __global__ void NearestNeighbor(
 
 	int index = ((col + row * nWidth) * 3) + row * nPad;
 
-	int oCol = (int)(((float)col / (float)nWidth) * oWidth + 0.5f);
-	int oRow = (int)(((float)row / (float)nHeight) * oHeight + 0.5f);
+	int oCol = (int)(((float)col / (float)nWidth) * oWidth);
+	int oRow = (int)(((float)row / (float)nHeight) * oHeight);
 
 	if (oCol < 0)
 	{
@@ -421,7 +421,7 @@ int main()
 	bilinearImage->height = 2005;
 	bicubicImage->width = 2005;
 	bicubicImage->height = 2005;
-	baseImage->readFromFile("TestContent/Test1.bmp");
+	baseImage->readFromFile("TestContent/4px.bmp");
 	DebugFeatures::stopX = 990;
 	DebugFeatures::stopY = 10;
 	DebugFeatures::emulator(baseImage, debugImage);
