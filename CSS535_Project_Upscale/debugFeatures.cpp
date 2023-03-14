@@ -43,6 +43,168 @@ void CPUKernelDebug(
 	unsigned short nHeight,
 	unsigned char nPad)
 {
+
+	int col = threadIdx.x + blockIdx.x * blockDim.x;
+	int row = threadIdx.y + blockIdx.y * blockDim.y;
+
+	if (col >= nWidth || row >= nHeight)
+	{
+		return;
+	}
+	int index = ((col + row * nWidth) * 3) + row * nPad;
+
+	// Build mapping to 4x4 grid of nearby pixels in source image
+
+	float sourceRelativeRow = (float)row / (float)nHeight;
+	float sourceRelativeCol = (float)col / (float)nWidth;
+
+	float oY = sourceRelativeRow * oHeight;
+	float oX = sourceRelativeCol * oWidth;
+
+	int ioWidth = (int)oWidth;
+	int ioHeight = (int)oHeight;
+
+	int oRow = (int)oY;
+	int oCol = (int)oX;
+
+	// Populate indices of colors to sample for 16 points
+	unsigned short neighborhoodIndices[4][4];
+	for (int x = 0; x < 4; ++x)
+	{
+		for (int y = 0; y < 4; ++y)
+		{
+			int oCurrentCol = oCol - 1 + x;
+			oCurrentCol = max(oCurrentCol, 0);
+			/*if (oCurrentCol < 0)
+			{
+				oCurrentCol = 0;
+			}*/
+			oCurrentCol = min(oCurrentCol, ioWidth - 1);
+			/*if (oCurrentCol >= oWidth)
+			{
+				oCurrentCol = oWidth - 1;
+			}*/
+			int oCurrentRow = oRow - 1 + y;
+			oCurrentRow = max(oCurrentRow, 0);
+			/*if (oCurrentRow < 0)
+			{
+				oCurrentRow = 0;
+			}*/
+			oCurrentRow = min(oCurrentRow, ioHeight - 1);
+			/*if (oCurrentRow >= oHeight)
+			{
+				oCurrentRow = oHeight - 1;
+			}*/
+			int oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+			neighborhoodIndices[x][y] = oIndex;
+		}
+	}
+
+	// ranges from 0 to 1 representing location in unit box of desired pixel relative to known source information
+	float rX = oX - oCol;
+	float rY = oY - oRow;
+
+	// Cubic interpolation on the 4 rows (times 3 color channels), each containing 4 points
+	float rowCubics[12];
+	for (int y = 0; y < 4; ++y)
+	{
+		// Cubic interpolation on a given row
+		for (int c = 0; c < 3; ++c)
+		{
+			// interpolation per color channel
+			unsigned char p0 = source[neighborhoodIndices[0][y] + c];
+			unsigned char p1 = source[neighborhoodIndices[1][y] + c];
+			unsigned char p2 = source[neighborhoodIndices[2][y] + c];
+			unsigned char p3 = source[neighborhoodIndices[3][y] + c];
+
+			// interpolate value
+			// calculus
+			rowCubics[y * 3 + c] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
+		}
+	}
+
+	// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
+
+		// interpolation per color channel
+	float p0 = rowCubics[0];
+	float p1 = rowCubics[3];
+	float p2 = rowCubics[6];
+	float p3 = rowCubics[9];
+	unsigned char result;
+
+	// interpolate value
+	// calculus
+	float rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
+
+	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
+	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	/*if (rVal <= 0.0f)
+	{
+		result = 0x00;
+	}
+	else if (rVal >= 255.0f)
+	{
+		result = 0xFF;
+	}
+	else
+	{
+		result = static_cast<unsigned char>(rVal);
+	}*/
+	dest[index] = result;
+	// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
+
+		// interpolation per color channel
+	p0 = rowCubics[1];
+	p1 = rowCubics[4];
+	p2 = rowCubics[7];
+	p3 = rowCubics[10];
+
+	// interpolate value
+	// calculus
+	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
+
+	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
+	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	/*if (rVal <= 0.0f)
+	{
+		result = 0x00;
+	}
+	else if (rVal >= 255.0f)
+	{
+		result = 0xFF;
+	}
+	else
+	{
+		result = static_cast<unsigned char>(rVal);
+	}*/
+	dest[index + 1] = result;
+	// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
+		// interpolation per color channel
+	p0 = rowCubics[2];
+	p1 = rowCubics[5];
+	p2 = rowCubics[8];
+	p3 = rowCubics[11];
+
+	// interpolate value
+	// calculus
+	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
+
+	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
+	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	/*if (rVal <= 0.0f)
+	{
+		result = 0x00;
+	}
+	else if (rVal >= 255.0f)
+	{
+		result = 0xFF;
+	}
+	else
+	{
+		result = static_cast<unsigned char>(rVal);
+	}*/
+	dest[index + 2] = result;
+	/*
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
 	int row = threadIdx.y + blockIdx.y * blockDim.y;
 
@@ -116,7 +278,7 @@ void CPUKernelDebug(
 		float bot = leftLinearFactor * BL[i] + rightLinearFactor * BR[i];
 		float result = topLinearFactor * top + botLinearFactor * bot;
 		dest[index + i] = static_cast<unsigned char>(result);
-	}
+	}*/
 }
 
 void KernelCPUEmulator(unsigned char* source, unsigned short oWidth, unsigned short oHeight, unsigned char oPad, unsigned char* dest, unsigned short nWidth, unsigned short nHeight, unsigned char nPad)
