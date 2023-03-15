@@ -10,6 +10,7 @@
 #include "debugFeatures.h"
 
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
@@ -43,7 +44,6 @@ void CPUKernelDebug(
 	unsigned short nHeight,
 	unsigned char nPad)
 {
-
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
 	int row = threadIdx.y + blockIdx.y * blockDim.y;
 
@@ -74,23 +74,29 @@ void CPUKernelDebug(
 		for (int y = 0; y < 4; ++y)
 		{
 			int oCurrentCol = oCol - 1 + x;
-			oCurrentCol = max(oCurrentCol, 0);
+			// oCurrentCol = max(oCurrentCol, 0);
+			oCurrentCol += -(oCurrentCol >> 8);
 			/*if (oCurrentCol < 0)
 			{
 				oCurrentCol = 0;
 			}*/
-			oCurrentCol = min(oCurrentCol, ioWidth - 1);
+			// oCurrentCol = min(oCurrentCol, ioWidth - 1);
+			oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 8);
+			oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 8);
 			/*if (oCurrentCol >= oWidth)
 			{
 				oCurrentCol = oWidth - 1;
 			}*/
 			int oCurrentRow = oRow - 1 + y;
-			oCurrentRow = max(oCurrentRow, 0);
+			// oCurrentRow = max(oCurrentRow, 0);
+			oCurrentRow += -(oCurrentRow >> 8);
 			/*if (oCurrentRow < 0)
 			{
 				oCurrentRow = 0;
 			}*/
-			oCurrentRow = min(oCurrentRow, ioHeight - 1);
+			// oCurrentRow = min(oCurrentRow, ioHeight - 1);
+			oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 8);
+			oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 8);
 			/*if (oCurrentRow >= oHeight)
 			{
 				oCurrentRow = oHeight - 1;
