@@ -5,25 +5,26 @@
 #endif
 
 #include <iostream>
+// #include "math.h"
+// #include <cmath>
 
 #include "bitmap.h"
 #include "debugFeatures.h"
 
 // using namespace std;
 
-// return the lesser of the args
-__device__ float (*device_fminf)(float, float) = fminf;
-// return the greater of the args
-__device__ float (*device_fmaxf)(float, float) = fmaxf;
-// return the greater of 0 and val
-inline __device__ int zBound(int val)
+// __device__ float (*device_fminf)(float, float) = fminf;
+// __device__ float (*device_fmaxf)(float, float) = fmaxf;
+
+__forceinline__ __device__ float my_fminf(float a, float b)
 {
-	return val - (val >> 16);
+	return (a < b) * a + (b <= a) * b;
+	// return device_fminf(a, b);
 }
-// return the lesser of val and u
-inline __device__ int uBound(int val, int u)
+__forceinline__ __device__ float my_fmaxf(float a, float b)
 {
-	return val + (((((u - 1) - val) >> 16) << -((u - val)))) - ((((((u - 1) - val) >> 16) << -((u - val)))) >> 16);
+	return (a > b) * a + (b >= a) * b;
+	// return fmaxf(a, b);
 }
 
 void print_matrix(unsigned char* matrix, unsigned short width, unsigned short height, int pad){
@@ -336,46 +337,15 @@ __global__ void Bicubic2(
 		for (int y = 0; y < 4; ++y)
 		{
 			int oCurrentCol = oCol - 1 + x;
-			// oCurrentCol = clamp(oCurrentCol, 0, ioWidth - 1);
-			// oCurrentCol = device_max(oCurrentCol, 0);
 			oCurrentCol += -(oCurrentCol >> 16);
-			// oCurrentCol = zBound(oCurrentCol);
-			/*if (oCurrentCol < 0)
-			{
-				oCurrentCol = 0;
-			}*/
-			// oCurrentCol = device_min(oCurrentCol, ioWidth - 1);
 			oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
-			// oCurrentCol = uBound(oCurrentCol, ioWidth);
-			// oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 24);
-			// oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 24);
-			/*if (oCurrentCol >= oWidth)
-			{
-				oCurrentCol = oWidth - 1;
-			}*/
 			int oCurrentRow = oRow - 1 + y;
-			// oCurrentRow = clamp(oCurrentRow, 0, ioHeight - 1);
-			// oCurrentRow = device_max(oCurrentRow, 0);
 			oCurrentRow += -(oCurrentRow >> 16);
-			// oCurrentRow = zBound(oCurrentRow);
-			/*if (oCurrentRow < 0)
-			{
-				oCurrentRow = 0;
-			}*/
-			// oCurrentRow = device_min(oCurrentRow, ioHeight - 1);
-			// oCurrentRow = uBound(oCurrentRow, ioHeight);
 			oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
-			// oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 24);
-			// oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 24);
-			/*if (oCurrentRow >= oHeight)
-			{
-				oCurrentRow = oHeight - 1;
-			}*/
 			int oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 			neighborhoodIndices[x][y] = oIndex;
 		}
 	}
-
 	// ranges from 0 to 1 representing location in unit box of desired pixel relative to known source information
 	float rX = oX - oCol;
 	float rY = oY - oRow;
@@ -399,120 +369,26 @@ __global__ void Bicubic2(
 		}
 	}
 
-// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
-
-	// interpolation per color channel
-	float p0 = rowCubics[0];
-	float p1 = rowCubics[3];
-	float p2 = rowCubics[6];
-	float p3 = rowCubics[9];
-	unsigned char result;
-
-	// interpolate value
-	// calculus
-	float rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
-
-	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	if (rVal <= 0.0f)
+	// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
+	for (int c = 0; c < 3; ++c)
 	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
+		// interpolation per color channel
+		float p0 = rowCubics[c];
+		float p1 = rowCubics[3 + c];
+		float p2 = rowCubics[6 + c];
+		float p3 = rowCubics[9 + c];
+
+		// interpolate value
+		// calculus
+		float rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
+
+		// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
+		unsigned char result;
+		rVal = my_fminf(255.0f, rVal);
+		rVal = my_fmaxf(0.0f, rVal);
 		result = static_cast<unsigned char>(rVal);
+		dest[index + c] = result;
 	}
-	/*if (rVal <= 0.0f)
-	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
-		result = static_cast<unsigned char>(rVal);
-	}*/
-	dest[index] = result;
-// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
-
-	// interpolation per color channel
-	p0 = rowCubics[1];
-	p1 = rowCubics[4];
-	p2 = rowCubics[7];
-	p3 = rowCubics[10];
-
-	// interpolate value
-	// calculus
-	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
-
-	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	if (rVal <= 0.0f)
-	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
-		result = static_cast<unsigned char>(rVal);
-	}
-	/*if (rVal <= 0.0f)
-	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
-		result = static_cast<unsigned char>(rVal);
-	}*/
-	dest[index + 1] = result;
-// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
-	// interpolation per color channel
-	p0 = rowCubics[2];
-	p1 = rowCubics[5];
-	p2 = rowCubics[8];
-	p3 = rowCubics[11];
-
-	// interpolate value
-	// calculus
-	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
-
-	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	if (rVal <= 0.0f)
-	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
-		result = static_cast<unsigned char>(rVal);
-	}
-	/*if (rVal <= 0.0f)
-	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
-		result = static_cast<unsigned char>(rVal);
-	}*/
-	dest[index + 2] = result;
 }
 
 __global__ void Bicubic3(
@@ -550,36 +426,203 @@ __global__ void Bicubic3(
 
 	// Populate indices of colors to sample for 16 points
 	unsigned short neighborhoodIndices[4][4];
-	for (int x = 0; x < 4; ++x)
+	/*for (int x = 0; x < 4; ++x)
 	{
 		for (int y = 0; y < 4; ++y)
 		{
 			int oCurrentCol = oCol - 1 + x;
-			oCurrentCol = max(oCurrentCol, 0);
-			/*if (oCurrentCol < 0)
-			{
-				oCurrentCol = 0;
-			}*/
-			oCurrentCol = min(oCurrentCol, ioWidth - 1);
-			/*if (oCurrentCol >= oWidth)
-			{
-				oCurrentCol = oWidth - 1;
-			}*/
+			oCurrentCol += -(oCurrentCol >> 16);
+			oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
 			int oCurrentRow = oRow - 1 + y;
-			oCurrentRow = max(oCurrentRow, 0);
-			/*if (oCurrentRow < 0)
-			{
-				oCurrentRow = 0;
-			}*/
-			oCurrentRow = min(oCurrentRow, ioHeight - 1);
-			/*if (oCurrentRow >= oHeight)
-			{
-				oCurrentRow = oHeight - 1;
-			}*/
+			oCurrentRow += -(oCurrentRow >> 16);
+			oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
 			int oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 			neighborhoodIndices[x][y] = oIndex;
 		}
-	}
+	}*/
+
+	int oCurrentCol;
+	int oCurrentRow;
+	int oIndex;
+
+	// 0,0
+
+	oCurrentCol = oCol - 1;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow - 1;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[0][0] = oIndex;
+
+	// 0,1
+
+	oCurrentCol = oCol - 1;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[0][1] = oIndex;
+
+	// 0,2
+
+	oCurrentCol = oCol - 1;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow + 1;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[0][2] = oIndex;
+
+	// 0,3
+
+	oCurrentCol = oCol - 1;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow + 2;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[0][3] = oIndex;
+
+
+	// 1,0
+
+	oCurrentCol = oCol;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow - 1;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[1][0] = oIndex;
+
+	// 1,1
+
+	oCurrentCol = oCol;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[1][1] = oIndex;
+
+	// 1,2
+
+	oCurrentCol = oCol;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow + 1;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[1][2] = oIndex;
+
+	// 1,3
+
+	oCurrentCol = oCol;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow + 2;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[1][3] = oIndex;
+
+
+	// 2,0
+
+	oCurrentCol = oCol + 1;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow - 1;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[2][0] = oIndex;
+
+	// 2,1
+
+	oCurrentCol = oCol + 1;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[2][1] = oIndex;
+
+	// 2,2
+
+	oCurrentCol = oCol + 1;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow + 1;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[2][2] = oIndex;
+
+	// 2,3
+
+	oCurrentCol = oCol + 1;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow + 2;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[2][3] = oIndex;
+
+
+	// 3,0
+
+	oCurrentCol = oCol + 2;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow - 1;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[3][0] = oIndex;
+
+	// 3,1
+
+	oCurrentCol = oCol + 2;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[3][1] = oIndex;
+
+	// 3,2
+
+	oCurrentCol = oCol + 2;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow + 1;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[3][2] = oIndex;
+
+	// 3,3
+
+	oCurrentCol = oCol + 2;
+	oCurrentCol += -(oCurrentCol >> 16);
+	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentRow = oRow + 2;
+	oCurrentRow += -(oCurrentRow >> 16);
+	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
+	neighborhoodIndices[3][3] = oIndex;
 
 	// ranges from 0 to 1 representing location in unit box of desired pixel relative to known source information
 	float rX = oX - oCol;
@@ -587,22 +630,6 @@ __global__ void Bicubic3(
 
 	// Cubic interpolation on the 4 rows (times 3 color channels), each containing 4 points
 	float rowCubics[12];
-	/*for (int y = 0; y < 4; ++y)
-	{
-		// Cubic interpolation on a given row
-		for (int c = 0; c < 3; ++c)
-		{
-			// interpolation per color channel
-			unsigned char p0 = source[neighborhoodIndices[0][y] + c];
-			unsigned char p1 = source[neighborhoodIndices[1][y] + c];
-			unsigned char p2 = source[neighborhoodIndices[2][y] + c];
-			unsigned char p3 = source[neighborhoodIndices[3][y] + c];
-
-			// interpolate value
-			// calculus
-			rowCubics[y * 3 + c] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
-		}
-	}*/
 
 	// horizantal cubics
 
@@ -618,19 +645,15 @@ __global__ void Bicubic3(
 	p2 = source[neighborhoodIndices[2][0]];
 	p3 = source[neighborhoodIndices[3][0]];
 
-	// interpolate value
-	// calculus
 	rowCubics[0] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
-	
+
 	p0 = source[neighborhoodIndices[0][0] + 1];
 	p1 = source[neighborhoodIndices[1][0] + 1];
 	p2 = source[neighborhoodIndices[2][0] + 1];
 	p3 = source[neighborhoodIndices[3][0] + 1];
 
-	// interpolate value
-	// calculus
 	rowCubics[1] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
-	
+
 	p0 = source[neighborhoodIndices[0][0] + 2];
 	p1 = source[neighborhoodIndices[1][0] + 2];
 	p2 = source[neighborhoodIndices[2][0] + 2];
@@ -645,8 +668,6 @@ __global__ void Bicubic3(
 	p2 = source[neighborhoodIndices[2][1]];
 	p3 = source[neighborhoodIndices[3][1]];
 
-	// interpolate value
-	// calculus
 	rowCubics[3] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
 
 	p0 = source[neighborhoodIndices[0][1] + 1];
@@ -654,8 +675,6 @@ __global__ void Bicubic3(
 	p2 = source[neighborhoodIndices[2][1] + 1];
 	p3 = source[neighborhoodIndices[3][1] + 1];
 
-	// interpolate value
-	// calculus
 	rowCubics[4] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
 
 	p0 = source[neighborhoodIndices[0][1] + 2];
@@ -672,8 +691,6 @@ __global__ void Bicubic3(
 	p2 = source[neighborhoodIndices[2][2]];
 	p3 = source[neighborhoodIndices[3][2]];
 
-	// interpolate value
-	// calculus
 	rowCubics[6] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
 
 	p0 = source[neighborhoodIndices[0][2] + 1];
@@ -681,8 +698,6 @@ __global__ void Bicubic3(
 	p2 = source[neighborhoodIndices[2][2] + 1];
 	p3 = source[neighborhoodIndices[3][2] + 1];
 
-	// interpolate value
-	// calculus
 	rowCubics[7] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
 
 	p0 = source[neighborhoodIndices[0][2] + 2];
@@ -699,8 +714,6 @@ __global__ void Bicubic3(
 	p2 = source[neighborhoodIndices[2][3]];
 	p3 = source[neighborhoodIndices[3][3]];
 
-	// interpolate value
-	// calculus
 	rowCubics[9] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
 
 	p0 = source[neighborhoodIndices[0][3] + 1];
@@ -708,8 +721,6 @@ __global__ void Bicubic3(
 	p2 = source[neighborhoodIndices[2][3] + 1];
 	p3 = source[neighborhoodIndices[3][3] + 1];
 
-	// interpolate value
-	// calculus
 	rowCubics[10] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
 
 	p0 = source[neighborhoodIndices[0][3] + 2];
@@ -720,107 +731,43 @@ __global__ void Bicubic3(
 	rowCubics[11] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
 
 	// vertical cubic
-
-
-	// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
-
-		// interpolation per color channel
 	p0 = rowCubics[0];
 	p1 = rowCubics[3];
 	p2 = rowCubics[6];
 	p3 = rowCubics[9];
 	unsigned char result;
 
-	// interpolate value
-	// calculus
 	float rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
-	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(device_fminf(device_fmaxf(rVal, 0.0f), 255.0f));
-	/*if (rVal <= 0.0f)
-	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
-		result = static_cast<unsigned char>(rVal);
-	}*/
+	rVal = my_fminf(255.0f, rVal);
+	rVal = my_fmaxf(0.0f, rVal);
+	result = static_cast<unsigned char>(rVal);
 	dest[index] = result;
-	// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
 
-		// interpolation per color channel
 	p0 = rowCubics[1];
 	p1 = rowCubics[4];
 	p2 = rowCubics[7];
 	p3 = rowCubics[10];
 
-	// interpolate value
-	// calculus
 	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
-	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(device_fminf(device_fmaxf(rVal, 0.0f), 255.0f));
-	/*if (rVal <= 0.0f)
-	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
-		result = static_cast<unsigned char>(rVal);
-	}*/
+	rVal = my_fminf(255.0f, rVal);
+	rVal = my_fmaxf(0.0f, rVal);
+	result = static_cast<unsigned char>(rVal);
 	dest[index + 1] = result;
-	// Cubic interpolation on the resulting intermediate collumn (times 3 color channels)
-		// interpolation per color channel
+
 	p0 = rowCubics[2];
 	p1 = rowCubics[5];
 	p2 = rowCubics[8];
 	p3 = rowCubics[11];
 
-	// interpolate value
-	// calculus
 	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
-	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(device_fminf(device_fmaxf(rVal, 0.0f), 255.0f));
-	/*if (rVal <= 0.0f)
-	{
-		result = 0x00;
-	}
-	else if (rVal >= 255.0f)
-	{
-		result = 0xFF;
-	}
-	else
-	{
-		result = static_cast<unsigned char>(rVal);
-	}*/
+	rVal = my_fminf(255.0f, rVal);
+	rVal = my_fmaxf(0.0f, rVal);
+	result = static_cast<unsigned char>(rVal);
 	dest[index + 2] = result;
 }
-
-/*
-#define BLOCK_SIZE 2
-__global__ void CopyImage(unsigned char* a, unsigned char* b, unsigned short width, unsigned short height, int pad) {
-
-	int col = threadIdx.x + blockIdx.x * blockDim.x;
-	int row = threadIdx.y + blockIdx.y * blockDim.y;
-
-	int index = ((col + row * width) * 3) + row * pad;
-
-	if (row < height && col < width) {
-		b[index] = a[index];
-        b[index + 1] = a[index + 1];
-        b[index + 2] = a[index + 2];
-	}
-}
-*/
 
 void NearestNeighbor(Bitmap* source, Bitmap* dest)
 {
