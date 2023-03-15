@@ -11,6 +11,21 @@
 
 // using namespace std;
 
+// return the lesser of the args
+__device__ float (*device_fminf)(float, float) = fminf;
+// return the greater of the args
+__device__ float (*device_fmaxf)(float, float) = fmaxf;
+// return the greater of 0 and val
+inline __device__ int zBound(int val)
+{
+	return val - (val >> 16);
+}
+// return the lesser of val and u
+inline __device__ int uBound(int val, int u)
+{
+	return val + (((((u - 1) - val) >> 16) << -((u - val)))) - ((((((u - 1) - val) >> 16) << -((u - val)))) >> 16);
+}
+
 void print_matrix(unsigned char* matrix, unsigned short width, unsigned short height, int pad){
 	for (int y = 0; y < height; ++y)
 	{
@@ -321,23 +336,37 @@ __global__ void Bicubic2(
 		for (int y = 0; y < 4; ++y)
 		{
 			int oCurrentCol = oCol - 1 + x;
-			oCurrentCol = max(oCurrentCol, 0);
+			// oCurrentCol = clamp(oCurrentCol, 0, ioWidth - 1);
+			// oCurrentCol = device_max(oCurrentCol, 0);
+			oCurrentCol += -(oCurrentCol >> 16);
+			// oCurrentCol = zBound(oCurrentCol);
 			/*if (oCurrentCol < 0)
 			{
 				oCurrentCol = 0;
 			}*/
-			oCurrentCol = min(oCurrentCol, ioWidth - 1);
+			// oCurrentCol = device_min(oCurrentCol, ioWidth - 1);
+			oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+			// oCurrentCol = uBound(oCurrentCol, ioWidth);
+			// oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 24);
+			// oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 24);
 			/*if (oCurrentCol >= oWidth)
 			{
 				oCurrentCol = oWidth - 1;
 			}*/
 			int oCurrentRow = oRow - 1 + y;
-			oCurrentRow = max(oCurrentRow, 0);
+			// oCurrentRow = clamp(oCurrentRow, 0, ioHeight - 1);
+			// oCurrentRow = device_max(oCurrentRow, 0);
+			oCurrentRow += -(oCurrentRow >> 16);
+			// oCurrentRow = zBound(oCurrentRow);
 			/*if (oCurrentRow < 0)
 			{
 				oCurrentRow = 0;
 			}*/
-			oCurrentRow = min(oCurrentRow, ioHeight - 1);
+			// oCurrentRow = device_min(oCurrentRow, ioHeight - 1);
+			// oCurrentRow = uBound(oCurrentRow, ioHeight);
+			oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+			// oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 24);
+			// oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 24);
 			/*if (oCurrentRow >= oHeight)
 			{
 				oCurrentRow = oHeight - 1;
@@ -384,7 +413,18 @@ __global__ void Bicubic2(
 	float rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
 	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	if (rVal <= 0.0f)
+	{
+		result = 0x00;
+	}
+	else if (rVal >= 255.0f)
+	{
+		result = 0xFF;
+	}
+	else
+	{
+		result = static_cast<unsigned char>(rVal);
+	}
 	/*if (rVal <= 0.0f)
 	{
 		result = 0x00;
@@ -411,7 +451,18 @@ __global__ void Bicubic2(
 	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
 	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	if (rVal <= 0.0f)
+	{
+		result = 0x00;
+	}
+	else if (rVal >= 255.0f)
+	{
+		result = 0xFF;
+	}
+	else
+	{
+		result = static_cast<unsigned char>(rVal);
+	}
 	/*if (rVal <= 0.0f)
 	{
 		result = 0x00;
@@ -437,7 +488,18 @@ __global__ void Bicubic2(
 	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
 	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	if (rVal <= 0.0f)
+	{
+		result = 0x00;
+	}
+	else if (rVal >= 255.0f)
+	{
+		result = 0xFF;
+	}
+	else
+	{
+		result = static_cast<unsigned char>(rVal);
+	}
 	/*if (rVal <= 0.0f)
 	{
 		result = 0x00;
@@ -674,7 +736,7 @@ __global__ void Bicubic3(
 	float rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
 	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	result = static_cast<unsigned char>(device_fminf(device_fmaxf(rVal, 0.0f), 255.0f));
 	/*if (rVal <= 0.0f)
 	{
 		result = 0x00;
@@ -701,7 +763,7 @@ __global__ void Bicubic3(
 	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
 	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	result = static_cast<unsigned char>(device_fminf(device_fmaxf(rVal, 0.0f), 255.0f));
 	/*if (rVal <= 0.0f)
 	{
 		result = 0x00;
@@ -727,7 +789,7 @@ __global__ void Bicubic3(
 	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
 
 	// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
-	result = static_cast<unsigned char>(fminf(fmaxf(rVal, 0.0f), 255.0f));
+	result = static_cast<unsigned char>(device_fminf(device_fmaxf(rVal, 0.0f), 255.0f));
 	/*if (rVal <= 0.0f)
 	{
 		result = 0x00;
@@ -898,7 +960,7 @@ void Bicubic2(Bitmap* source, Bitmap* dest)
 	dim3 dimBlock(BicubicBlockSize, BicubicBlockSize);
 	dim3 dimGrid((nW / dimBlock.x) + 1, (nH / dimBlock.y) + 1);
 
-	Bicubic2 << <dimGrid, dimBlock >> > (original_image_device, oW, oH, oP, upscaled_image_device, nW, nH, nP);
+	Bicubic2<<<dimGrid, dimBlock>>>(original_image_device, oW, oH, oP, upscaled_image_device, nW, nH, nP);
 
 	cudaMemcpy(upscaled_image, upscaled_image_device, size_dest, cudaMemcpyDeviceToHost);
 
