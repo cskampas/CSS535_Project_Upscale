@@ -86,8 +86,9 @@ bool Bitmap::writeToFile(const char* filepath)
 	}
 	header[0] = 0x42;
 	header[1] = 0x4d;
-	header[2] = 0x66;
-	header[3] = 0x75;
+
+	unsigned int* p = reinterpret_cast<unsigned int*>(&header[2]);
+	*p = 14 + 40 + 3 * (this->width * this->height) * this->height * this->padSize();
 	header[10] = 0x36;
 	outfile.write(reinterpret_cast<char*>(header), 14);
 	unsigned char metadata[40];
@@ -107,7 +108,7 @@ bool Bitmap::writeToFile(const char* filepath)
 	metadata[12] = 0x1;
 	metadata[14] = 0x18;
 	outfile.write(reinterpret_cast<char*>(metadata), 40);
-	int size = 3 * sizeof(char) * this->width * this->height + this->width * padSize();
+	int size = 3 * sizeof(char) * this->width * this->height + this->height * padSize();
 	outfile.write(reinterpret_cast<char*>(imageData), size);
 	outfile.close();
 	return true;
