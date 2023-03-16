@@ -27,7 +27,7 @@ __forceinline__ __device__ float my_fmaxf(float a, float b)
 	// return fmaxf(a, b);
 }
 
-void print_matrix(unsigned char* matrix, unsigned short width, unsigned short height, int pad){
+void print_matrix(unsigned char* matrix, unsigned int width, unsigned int height, int pad){
 	for (int y = 0; y < height; ++y)
 	{
 		for (int x = 0; x < width; ++x)
@@ -53,12 +53,12 @@ void print_matrix(unsigned char* matrix, unsigned short width, unsigned short he
 
 __global__ void NearestNeighbor(
 	unsigned char* source,
-	unsigned short oWidth,
-	unsigned short oHeight,
+	unsigned int oWidth,
+	unsigned int oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned short nWidth,
-	unsigned short nHeight,
+	unsigned int nWidth,
+	unsigned int nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -100,12 +100,12 @@ __global__ void NearestNeighbor(
 
 __global__ void Bilinear(
 	unsigned char* source,
-	unsigned short oWidth,
-	unsigned short oHeight,
+	unsigned int oWidth,
+	unsigned int oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned short nWidth,
-	unsigned short nHeight,
+	unsigned int nWidth,
+	unsigned int nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -186,12 +186,12 @@ __global__ void Bilinear(
 
 __global__ void Bicubic(
 	unsigned char* source,
-	unsigned short oWidth,
-	unsigned short oHeight,
+	unsigned int oWidth,
+	unsigned int oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned short nWidth,
-	unsigned short nHeight,
+	unsigned int nWidth,
+	unsigned int nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -215,7 +215,7 @@ __global__ void Bicubic(
 	int oCol = (int)oX;
 
 	// Populate indices of colors to sample for 16 points
-	unsigned short neighborhoodIndices[4][4];
+	unsigned int neighborhoodIndices[4][4];
 	for (int x = 0; x < 4; ++x)
 	{
 		for (int y = 0; y < 4; ++y)
@@ -299,12 +299,12 @@ __global__ void Bicubic(
 
 __global__ void Bicubic2(
 	unsigned char* source,
-	unsigned short oWidth,
-	unsigned short oHeight,
+	unsigned int oWidth,
+	unsigned int oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned short nWidth,
-	unsigned short nHeight,
+	unsigned int nWidth,
+	unsigned int nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -331,7 +331,7 @@ __global__ void Bicubic2(
 	int oCol = (int)oX;
 
 	// Populate indices of colors to sample for 16 points
-	unsigned short neighborhoodIndices[4][4];
+	unsigned int neighborhoodIndices[4][4];
 	for (int x = 0; x < 4; ++x)
 	{
 		for (int y = 0; y < 4; ++y)
@@ -393,12 +393,12 @@ __global__ void Bicubic2(
 
 __global__ void Bicubic3(
 	unsigned char* source,
-	unsigned short oWidth,
-	unsigned short oHeight,
+	unsigned int oWidth,
+	unsigned int oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned short nWidth,
-	unsigned short nHeight,
+	unsigned int nWidth,
+	unsigned int nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -425,7 +425,7 @@ __global__ void Bicubic3(
 	int oCol = (int)oX;
 
 	// Populate indices of colors to sample for 16 points
-	unsigned short neighborhoodIndices[4][4];
+	unsigned int neighborhoodIndices[4][4];
 
 	int oCurrentCol;
 	int oCurrentRow;
@@ -757,12 +757,12 @@ __global__ void Bicubic3(
 
 __global__ void Bicubic4(
 	unsigned char* source,
-	unsigned short oWidth,
-	unsigned short oHeight,
+	unsigned int oWidth,
+	unsigned int oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned short nWidth,
-	unsigned short nHeight,
+	unsigned int nWidth,
+	unsigned int nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -786,7 +786,7 @@ __global__ void Bicubic4(
 	int oCol = (int)oX;
 
 	// Populate indices of colors to sample for 16 points
-	unsigned short neighborhoodIndices[4][4];
+	unsigned int neighborhoodIndices[4][4];
 	for (int x = 0; x < 4; ++x)
 	{
 		for (int y = 0; y < 4; ++y)
@@ -875,11 +875,11 @@ void NearestNeighbor(Bitmap* source, Bitmap* dest)
 	const int NearestNeighborBlockSize = 32;
 	dest->init();
 
-	unsigned short oW = source->width;
-	unsigned short oH = source->height;
+	unsigned int oW = source->width;
+	unsigned int oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned short nW = dest->width;
-	unsigned short nH = dest->height;
+	unsigned int nW = dest->width;
+	unsigned int nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -911,11 +911,11 @@ void Bilinear(Bitmap* source, Bitmap* dest)
 	const int BilinearBlockSize = 32;
 	dest->init();
 
-	unsigned short oW = source->width;
-	unsigned short oH = source->height;
+	unsigned int oW = source->width;
+	unsigned int oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned short nW = dest->width;
-	unsigned short nH = dest->height;
+	unsigned int nW = dest->width;
+	unsigned int nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -948,11 +948,11 @@ void Bicubic(Bitmap* source, Bitmap* dest)
 	const int BicubicBlockSize = 32;
 	dest->init();
 
-	unsigned short oW = source->width;
-	unsigned short oH = source->height;
+	unsigned int oW = source->width;
+	unsigned int oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned short nW = dest->width;
-	unsigned short nH = dest->height;
+	unsigned int nW = dest->width;
+	unsigned int nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -985,11 +985,11 @@ void Bicubic2(Bitmap* source, Bitmap* dest)
 	const int BicubicBlockSize = 32;
 	dest->init();
 
-	unsigned short oW = source->width;
-	unsigned short oH = source->height;
+	unsigned int oW = source->width;
+	unsigned int oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned short nW = dest->width;
-	unsigned short nH = dest->height;
+	unsigned int nW = dest->width;
+	unsigned int nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -1022,11 +1022,11 @@ void Bicubic3(Bitmap* source, Bitmap* dest)
 	const int BicubicBlockSize = 32;
 	dest->init();
 
-	unsigned short oW = source->width;
-	unsigned short oH = source->height;
+	unsigned int oW = source->width;
+	unsigned int oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned short nW = dest->width;
-	unsigned short nH = dest->height;
+	unsigned int nW = dest->width;
+	unsigned int nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -1059,9 +1059,9 @@ int main()
 	Bitmap* bicubicImageRaytracer = new Bitmap();
 	bicubicImageRaytracer->readFromFile("TestContent/raytracer.bmp");
 	Bitmap* bicubicImageRaytracerUpscale = new Bitmap();
-	bicubicImageRaytracerUpscale->width = 2005;
-	bicubicImageRaytracerUpscale->height = 2005;
-	Bilinear(bicubicImageRaytracer, bicubicImageRaytracerUpscale);
+	bicubicImageRaytracerUpscale->width = 2000;
+	bicubicImageRaytracerUpscale->height = 2000;
+	Bicubic(bicubicImageRaytracer, bicubicImageRaytracerUpscale);
 	bicubicImageRaytracerUpscale->writeToFile("TestContent/raytracer_out.bmp");
 
 	Bitmap* baseImage = new Bitmap();
@@ -1071,8 +1071,8 @@ int main()
 	Bitmap* bicubicImage = new Bitmap();
 	Bitmap* bicubicImage2 = new Bitmap();
 	Bitmap* bicubicImage3 = new Bitmap();
-	debugImage->width = 2005;
-	debugImage->height = 2005;
+	debugImage->width = 2000;
+	debugImage->height = 2000;
 	nearestNeighborImage->width = 295;
 	nearestNeighborImage->height = 295;
 	bilinearImage->width = 2005;
@@ -1083,9 +1083,9 @@ int main()
 	bicubicImage2->height = 2005;
 	bicubicImage3->width = 2005;
 	bicubicImage3->height = 2005;
-	baseImage->readFromFile("TestContent/Test1.bmp");
-	DebugFeatures::stopX = 0;
-	DebugFeatures::stopY = 0;
+	baseImage->readFromFile("TestContent/raytracer.bmp");
+	DebugFeatures::stopX = 5;
+	DebugFeatures::stopY = 50;
 	DebugFeatures::emulator(bicubicImageRaytracer, debugImage);
 	NearestNeighbor(baseImage, nearestNeighborImage);
 	Bilinear(baseImage, bilinearImage);

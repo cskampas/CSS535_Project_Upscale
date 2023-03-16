@@ -15,12 +15,12 @@ unsigned char Bitmap::padSize()
 	return Bitmap::padSize(this->width);
 }
 
-unsigned int Bitmap::imageDataSize(unsigned short width, unsigned short height)
+unsigned int Bitmap::imageDataSize(unsigned int width, unsigned int height)
 {
 	return width * height * 3 + height * Bitmap::padSize(width);
 }
 
-unsigned char Bitmap::padSize(unsigned short width)
+unsigned char Bitmap::padSize(unsigned int width)
 {
 	return  (4 - (width * 3) % 4) % 4;
 }
