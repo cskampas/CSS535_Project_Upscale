@@ -1016,7 +1016,6 @@ void Bicubic2(Bitmap* source, Bitmap* dest)
 	cudaFree(upscaled_image_device);
 }
 
-
 void Bicubic3(Bitmap* source, Bitmap* dest)
 {
 	const int BicubicBlockSize = 32;
@@ -1053,6 +1052,41 @@ void Bicubic3(Bitmap* source, Bitmap* dest)
 	cudaFree(upscaled_image_device);
 }
 
+void Bicubic4(Bitmap* source, Bitmap* dest)
+{
+	const int BicubicBlockSize = 32;
+	dest->init();
+
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
+	unsigned char oP = source->padSize();
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
+	unsigned char nP = dest->padSize();
+
+	unsigned char* original_image, * upscaled_image;
+	unsigned char* original_image_device, * upscaled_image_device;
+
+	int size_matrix = source->imageDataSize();
+	int size_dest = dest->imageDataSize();
+	original_image = source->imageData;
+	upscaled_image = dest->imageData;
+
+	cudaMalloc((void**)&original_image_device, size_matrix);
+	cudaMalloc((void**)&upscaled_image_device, size_dest);
+
+	cudaMemcpy(original_image_device, original_image, size_matrix, cudaMemcpyHostToDevice);
+
+	dim3 dimBlock(BicubicBlockSize, BicubicBlockSize);
+	dim3 dimGrid((nW / dimBlock.x) + 1, (nH / dimBlock.y) + 1);
+
+	Bicubic4 << <dimGrid, dimBlock >> > (original_image_device, oW, oH, oP, upscaled_image_device, nW, nH, nP);
+
+	cudaMemcpy(upscaled_image, upscaled_image_device, size_dest, cudaMemcpyDeviceToHost);
+
+	cudaFree(original_image_device);
+	cudaFree(upscaled_image_device);
+}
 
 int main()
 {
