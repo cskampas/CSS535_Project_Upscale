@@ -1056,7 +1056,15 @@ void Bicubic3(Bitmap* source, Bitmap* dest)
 
 int main()
 {
-    Bitmap* baseImage = new Bitmap();
+	Bitmap* bicubicImageRaytracer = new Bitmap();
+	bicubicImageRaytracer->readFromFile("TestContent/raytracer.bmp");
+	Bitmap* bicubicImageRaytracerUpscale = new Bitmap();
+	bicubicImageRaytracerUpscale->width = 2005;
+	bicubicImageRaytracerUpscale->height = 2005;
+	Bilinear(bicubicImageRaytracer, bicubicImageRaytracerUpscale);
+	bicubicImageRaytracerUpscale->writeToFile("TestContent/raytracer_out.bmp");
+
+	Bitmap* baseImage = new Bitmap();
 	Bitmap* debugImage = new Bitmap();
 	Bitmap* nearestNeighborImage = new Bitmap();
 	Bitmap* bilinearImage = new Bitmap();
@@ -1076,9 +1084,9 @@ int main()
 	bicubicImage3->width = 2005;
 	bicubicImage3->height = 2005;
 	baseImage->readFromFile("TestContent/Test1.bmp");
-	DebugFeatures::stopX = 50;
-	DebugFeatures::stopY = 50;
-	DebugFeatures::emulator(baseImage, debugImage);
+	DebugFeatures::stopX = 0;
+	DebugFeatures::stopY = 0;
+	DebugFeatures::emulator(bicubicImageRaytracer, debugImage);
 	NearestNeighbor(baseImage, nearestNeighborImage);
 	Bilinear(baseImage, bilinearImage);
 	Bicubic(baseImage, bicubicImage);
