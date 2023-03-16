@@ -31,17 +31,17 @@ mockUnit3 threadIdx;
 mockUnit3 blockIdx;
 mockUnit3 blockDim;
 mockUnit3 gridDim;
-unsigned int DebugFeatures::stopX;
-unsigned int DebugFeatures::stopY;
+unsigned short DebugFeatures::stopX;
+unsigned short DebugFeatures::stopY;
 
 void CPUKernelDebug(
 	unsigned char* source,
-	unsigned int oWidth,
-	unsigned int oHeight,
+	unsigned short oWidth,
+	unsigned short oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned int nWidth,
-	unsigned int nHeight,
+	unsigned short nWidth,
+	unsigned short nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -223,7 +223,7 @@ void CPUKernelDebug(
 	}*/
 }
 
-void KernelCPUEmulator(unsigned char* source, unsigned int oWidth, unsigned int oHeight, unsigned char oPad, unsigned char* dest, unsigned int nWidth, unsigned int nHeight, unsigned char nPad)
+void KernelCPUEmulator(unsigned char* source, unsigned short oWidth, unsigned short oHeight, unsigned char oPad, unsigned char* dest, unsigned short nWidth, unsigned short nHeight, unsigned char nPad)
 {
 	for (blockIdx.x = 0; blockIdx.x < gridDim.x; ++blockIdx.x)
 	{
@@ -262,11 +262,11 @@ void DebugFeatures::emulator(Bitmap* source, Bitmap* dest)
 	const int BlockSize = 32;
 	dest->init();
 
-	unsigned int oW = source->width;
-	unsigned int oH = source->height;
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned int nW = dest->width;
-	unsigned int nH = dest->height;
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;

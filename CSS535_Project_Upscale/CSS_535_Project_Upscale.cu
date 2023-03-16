@@ -27,7 +27,7 @@ __forceinline__ __device__ float my_fmaxf(float a, float b)
 	// return fmaxf(a, b);
 }
 
-void print_matrix(unsigned char* matrix, unsigned int width, unsigned int height, int pad){
+void print_matrix(unsigned char* matrix, unsigned short width, unsigned short height, int pad){
 	for (int y = 0; y < height; ++y)
 	{
 		for (int x = 0; x < width; ++x)
@@ -53,12 +53,12 @@ void print_matrix(unsigned char* matrix, unsigned int width, unsigned int height
 
 __global__ void NearestNeighbor(
 	unsigned char* source,
-	unsigned int oWidth,
-	unsigned int oHeight,
+	unsigned short oWidth,
+	unsigned short oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned int nWidth,
-	unsigned int nHeight,
+	unsigned short nWidth,
+	unsigned short nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -100,12 +100,12 @@ __global__ void NearestNeighbor(
 
 __global__ void Bilinear(
 	unsigned char* source,
-	unsigned int oWidth,
-	unsigned int oHeight,
+	unsigned short oWidth,
+	unsigned short oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned int nWidth,
-	unsigned int nHeight,
+	unsigned short nWidth,
+	unsigned short nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -186,12 +186,12 @@ __global__ void Bilinear(
 
 __global__ void Bicubic(
 	unsigned char* source,
-	unsigned int oWidth,
-	unsigned int oHeight,
+	unsigned short oWidth,
+	unsigned short oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned int nWidth,
-	unsigned int nHeight,
+	unsigned short nWidth,
+	unsigned short nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -299,12 +299,12 @@ __global__ void Bicubic(
 
 __global__ void Bicubic2(
 	unsigned char* source,
-	unsigned int oWidth,
-	unsigned int oHeight,
+	unsigned short oWidth,
+	unsigned short oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned int nWidth,
-	unsigned int nHeight,
+	unsigned short nWidth,
+	unsigned short nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -393,12 +393,12 @@ __global__ void Bicubic2(
 
 __global__ void Bicubic3(
 	unsigned char* source,
-	unsigned int oWidth,
-	unsigned int oHeight,
+	unsigned short oWidth,
+	unsigned short oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned int nWidth,
-	unsigned int nHeight,
+	unsigned short nWidth,
+	unsigned short nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -757,12 +757,12 @@ __global__ void Bicubic3(
 
 __global__ void Bicubic4(
 	unsigned char* source,
-	unsigned int oWidth,
-	unsigned int oHeight,
+	unsigned short oWidth,
+	unsigned short oHeight,
 	unsigned char oPad,
 	unsigned char* dest,
-	unsigned int nWidth,
-	unsigned int nHeight,
+	unsigned short nWidth,
+	unsigned short nHeight,
 	unsigned char nPad)
 {
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -875,11 +875,11 @@ void NearestNeighbor(Bitmap* source, Bitmap* dest)
 	const int NearestNeighborBlockSize = 32;
 	dest->init();
 
-	unsigned int oW = source->width;
-	unsigned int oH = source->height;
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned int nW = dest->width;
-	unsigned int nH = dest->height;
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -911,11 +911,11 @@ void Bilinear(Bitmap* source, Bitmap* dest)
 	const int BilinearBlockSize = 32;
 	dest->init();
 
-	unsigned int oW = source->width;
-	unsigned int oH = source->height;
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned int nW = dest->width;
-	unsigned int nH = dest->height;
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -948,11 +948,11 @@ void Bicubic(Bitmap* source, Bitmap* dest)
 	const int BicubicBlockSize = 32;
 	dest->init();
 
-	unsigned int oW = source->width;
-	unsigned int oH = source->height;
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned int nW = dest->width;
-	unsigned int nH = dest->height;
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -985,11 +985,11 @@ void Bicubic2(Bitmap* source, Bitmap* dest)
 	const int BicubicBlockSize = 32;
 	dest->init();
 
-	unsigned int oW = source->width;
-	unsigned int oH = source->height;
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned int nW = dest->width;
-	unsigned int nH = dest->height;
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
@@ -1022,11 +1022,11 @@ void Bicubic3(Bitmap* source, Bitmap* dest)
 	const int BicubicBlockSize = 32;
 	dest->init();
 
-	unsigned int oW = source->width;
-	unsigned int oH = source->height;
+	unsigned short oW = source->width;
+	unsigned short oH = source->height;
 	unsigned char oP = source->padSize();
-	unsigned int nW = dest->width;
-	unsigned int nH = dest->height;
+	unsigned short nW = dest->width;
+	unsigned short nH = dest->height;
 	unsigned char nP = dest->padSize();
 
 	unsigned char* original_image, * upscaled_image;
