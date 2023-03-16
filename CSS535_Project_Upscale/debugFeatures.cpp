@@ -105,7 +105,6 @@ void CPUKernelDebug(
 		for (int c = 0; c < 3; ++c)
 		{
 			// interpolation per color channel
-			// use shared memory for these
 			unsigned char p0 = source[neighborhoodIndices[0][y] + c];
 			unsigned char p1 = source[neighborhoodIndices[1][y] + c];
 			unsigned char p2 = source[neighborhoodIndices[2][y] + c];
@@ -146,6 +145,7 @@ void CPUKernelDebug(
 		}
 		dest[index + c] = result;
 	}
+
 	/*
 	int col = threadIdx.x + blockIdx.x * blockDim.x;
 	int row = threadIdx.y + blockIdx.y * blockDim.y;
@@ -239,10 +239,10 @@ void KernelCPUEmulator(unsigned char* source, unsigned short oWidth, unsigned sh
 						{
 							// Conditional breakpoints in Visual Studio introduce significant performance impact.  It is better here to do this:
 							// Some copy-paste required for row/col calc to provide correct stopping pixel
-							int col = threadIdx.x + blockIdx.x * blockDim.x;
+							/*int col = threadIdx.x + blockIdx.x * blockDim.x;
 							int row = threadIdx.y + blockIdx.y * blockDim.y;
 
-							/*if (col == DebugFeatures::stopX && row == DebugFeatures::stopY)
+							if (col == DebugFeatures::stopX && row == DebugFeatures::stopY)
 							{
 								// Set a breakpoint at this line to debug a particular pixel
 								cout << "";

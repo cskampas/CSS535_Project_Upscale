@@ -5,27 +5,10 @@
 #endif
 
 #include <iostream>
-// #include "math.h"
-// #include <cmath>
+#include <math.h>
 
 #include "bitmap.h"
 #include "debugFeatures.h"
-
-// using namespace std;
-
-// __device__ float (*device_fminf)(float, float) = fminf;
-// __device__ float (*device_fmaxf)(float, float) = fmaxf;
-
-__forceinline__ __device__ float my_fminf(float a, float b)
-{
-	return (a < b) * a + (b <= a) * b;
-	// return device_fminf(a, b);
-}
-__forceinline__ __device__ float my_fmaxf(float a, float b)
-{
-	return (a > b) * a + (b >= a) * b;
-	// return fmaxf(a, b);
-}
 
 void print_matrix(unsigned char* matrix, unsigned short width, unsigned short height, int pad){
 	for (int y = 0; y < height; ++y)
@@ -337,11 +320,11 @@ __global__ void Bicubic2(
 		for (int y = 0; y < 4; ++y)
 		{
 			int oCurrentCol = oCol - 1 + x;
-			oCurrentCol += -(oCurrentCol >> 16);
-			oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+			oCurrentCol = max(0, oCurrentCol);
+			oCurrentCol = min(oCurrentCol, ioWidth - 1);
 			int oCurrentRow = oRow - 1 + y;
-			oCurrentRow += -(oCurrentRow >> 16);
-			oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+			oCurrentRow = max(0, oCurrentRow);
+			oCurrentRow = min(oCurrentRow, ioHeight - 1);
 			int oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 			neighborhoodIndices[x][y] = oIndex;
 		}
@@ -384,8 +367,8 @@ __global__ void Bicubic2(
 
 		// Bicubic interpolation can overshoot, so don't just cast to int, also cap to 0-255
 		unsigned char result;
-		rVal = my_fminf(255.0f, rVal);
-		rVal = my_fmaxf(0.0f, rVal);
+		rVal = fminf(255.0f, rVal);
+		rVal = fmaxf(0.0f, rVal);
 		result = static_cast<unsigned char>(rVal);
 		dest[index + c] = result;
 	}
@@ -434,44 +417,44 @@ __global__ void Bicubic3(
 	// 0,0
 
 	oCurrentCol = oCol - 1;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow - 1;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[0][0] = oIndex;
 
 	// 0,1
 
 	oCurrentCol = oCol - 1;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[0][1] = oIndex;
 
 	// 0,2
 
 	oCurrentCol = oCol - 1;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow + 1;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[0][2] = oIndex;
 
 	// 0,3
 
 	oCurrentCol = oCol - 1;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow + 2;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[0][3] = oIndex;
 
@@ -479,44 +462,44 @@ __global__ void Bicubic3(
 	// 1,0
 
 	oCurrentCol = oCol;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow - 1;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[1][0] = oIndex;
 
 	// 1,1
 
 	oCurrentCol = oCol;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[1][1] = oIndex;
 
 	// 1,2
 
 	oCurrentCol = oCol;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow + 1;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[1][2] = oIndex;
 
 	// 1,3
 
 	oCurrentCol = oCol;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow + 2;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[1][3] = oIndex;
 
@@ -524,44 +507,44 @@ __global__ void Bicubic3(
 	// 2,0
 
 	oCurrentCol = oCol + 1;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow - 1;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[2][0] = oIndex;
 
 	// 2,1
 
 	oCurrentCol = oCol + 1;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[2][1] = oIndex;
 
 	// 2,2
 
 	oCurrentCol = oCol + 1;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow + 1;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[2][2] = oIndex;
 
 	// 2,3
 
 	oCurrentCol = oCol + 1;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow + 2;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[2][3] = oIndex;
 
@@ -569,44 +552,44 @@ __global__ void Bicubic3(
 	// 3,0
 
 	oCurrentCol = oCol + 2;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow - 1;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[3][0] = oIndex;
 
 	// 3,1
 
 	oCurrentCol = oCol + 2;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[3][1] = oIndex;
 
 	// 3,2
 
 	oCurrentCol = oCol + 2;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow + 1;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[3][2] = oIndex;
 
 	// 3,3
 
 	oCurrentCol = oCol + 2;
-	oCurrentCol += -(oCurrentCol >> 16);
-	oCurrentCol += (((ioWidth - 1) - oCurrentCol) >> 16) << -((ioWidth - oCurrentCol));
+	oCurrentCol = max(0, oCurrentCol);
+	oCurrentCol = min(oCurrentCol, ioWidth - 1);
 	oCurrentRow = oRow + 2;
-	oCurrentRow += -(oCurrentRow >> 16);
-	oCurrentRow += (((ioHeight - 1) - oCurrentRow) >> 16) << -((ioHeight - oCurrentRow));
+	oCurrentRow = max(0, oCurrentRow);
+	oCurrentRow = min(oCurrentRow, ioHeight - 1);
 	oIndex = ((oCurrentCol + oCurrentRow * oWidth) * 3) + oCurrentRow * oPad;
 	neighborhoodIndices[3][3] = oIndex;
 
@@ -618,7 +601,6 @@ __global__ void Bicubic3(
 	float rowCubics[12];
 
 	// horizantal cubics
-
 	unsigned char p0;
 	unsigned char p1;
 	unsigned char p2;
@@ -717,40 +699,42 @@ __global__ void Bicubic3(
 	rowCubics[11] = p1 + 0.5f * rX * (p2 - p0 + rX * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rX * (3.0f * (p1 - p2) + p3 - p0)));
 
 	// vertical cubic
-	p0 = rowCubics[0];
-	p1 = rowCubics[3];
-	p2 = rowCubics[6];
-	p3 = rowCubics[9];
+	float p0f = rowCubics[0];
+	float p1f = rowCubics[3];
+	float p2f = rowCubics[6];
+	float p3f = rowCubics[9];
+
+	float rVal;
 	unsigned char result;
 
-	float rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
+	rVal = p1f + 0.5f * rY * (p2f - p0f + rY * (2.0f * p0f - 5.0f * p1f + 4.0f * p2f - p3f + rY * (3.0f * (p1f - p2f) + p3f - p0f)));
 
-	rVal = my_fminf(255.0f, rVal);
-	rVal = my_fmaxf(0.0f, rVal);
+	rVal = fminf(255.0f, rVal);
+	rVal = fmaxf(0.0f, rVal);
 	result = static_cast<unsigned char>(rVal);
 	dest[index] = result;
 
-	p0 = rowCubics[1];
-	p1 = rowCubics[4];
-	p2 = rowCubics[7];
-	p3 = rowCubics[10];
+	p0f = rowCubics[1];
+	p1f = rowCubics[4];
+	p2f = rowCubics[7];
+	p3f = rowCubics[10];
 
-	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
+	rVal = p1f + 0.5f * rY * (p2f - p0f + rY * (2.0f * p0f - 5.0f * p1f + 4.0f * p2f - p3f + rY * (3.0f * (p1f - p2f) + p3f - p0f)));
 
-	rVal = my_fminf(255.0f, rVal);
-	rVal = my_fmaxf(0.0f, rVal);
+	rVal = fminf(255.0f, rVal);
+	rVal = fmaxf(0.0f, rVal);
 	result = static_cast<unsigned char>(rVal);
 	dest[index + 1] = result;
 
-	p0 = rowCubics[2];
-	p1 = rowCubics[5];
-	p2 = rowCubics[8];
-	p3 = rowCubics[11];
+	p0f = rowCubics[2];
+	p1f = rowCubics[5];
+	p2f = rowCubics[8];
+	p3f = rowCubics[11];
 
-	rVal = p1 + 0.5f * rY * (p2 - p0 + rY * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + rY * (3.0f * (p1 - p2) + p3 - p0)));
+	rVal = p1f + 0.5f * rY * (p2f - p0f + rY * (2.0f * p0f - 5.0f * p1f + 4.0f * p2f - p3f + rY * (3.0f * (p1f - p2f) + p3f - p0f)));
 
-	rVal = my_fminf(255.0f, rVal);
-	rVal = my_fmaxf(0.0f, rVal);
+	rVal = fminf(255.0f, rVal);
+	rVal = fmaxf(0.0f, rVal);
 	result = static_cast<unsigned char>(rVal);
 	dest[index + 2] = result;
 }
