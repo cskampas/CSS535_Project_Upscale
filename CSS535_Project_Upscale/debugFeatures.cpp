@@ -14,6 +14,10 @@
 
 using namespace std;
 
+/// <summary>
+/// This mocks the unit3 used by CUDA so that kernel code may be dropped into
+/// the emulator without modification or porting efforts
+/// </summary>
 struct mockUnit3
 {
 	unsigned int x;
@@ -31,9 +35,22 @@ mockUnit3 threadIdx;
 mockUnit3 blockIdx;
 mockUnit3 blockDim;
 mockUnit3 gridDim;
+// In debug, useful for setting breakpoints.  Conditional breakpoints in VS incur
+// substantial performance costs, it is better to check explicitly where possible
 unsigned short DebugFeatures::stopX;
 unsigned short DebugFeatures::stopY;
 
+/// <summary>
+/// Drop-in kernel code to run on the CPU.  In this case we have our naive bicubic implementation
+/// </summary>
+/// <param name="source">Source image color channel matrix</param>
+/// <param name="oWidth">Original image width</param>
+/// <param name="oHeight">Original image height</param>
+/// <param name="oPad">Original image padding size</param>
+/// <param name="dest">Destination image color matrix</param>
+/// <param name="nWidth">New image width</param>
+/// <param name="nHeight">New image height</param>
+/// <param name="nPad">New image padding size</param>
 void CPUKernelDebug(
 	unsigned char* source,
 	unsigned short oWidth,
@@ -147,6 +164,18 @@ void CPUKernelDebug(
 	}
 }
 
+/// <summary>
+/// Emulator function which will loop over the mocked block count and thread count to provide for
+/// one inner function call per CUDA thread were it on the GPU
+/// </summary>
+/// <param name="source">Source image color channel matrix</param>
+/// <param name="oWidth">Original image width</param>
+/// <param name="oHeight">Original image height</param>
+/// <param name="oPad">Original image padding size</param>
+/// <param name="dest">Destination image color matrix</param>
+/// <param name="nWidth">New image width</param>
+/// <param name="nHeight">New image height</param>
+/// <param name="nPad">New image padding size</param>
 void KernelCPUEmulator(unsigned char* source, unsigned short oWidth, unsigned short oHeight, unsigned char oPad, unsigned char* dest, unsigned short nWidth, unsigned short nHeight, unsigned char nPad)
 {
 	for (blockIdx.x = 0; blockIdx.x < gridDim.x; ++blockIdx.x)
@@ -161,6 +190,7 @@ void KernelCPUEmulator(unsigned char* source, unsigned short oWidth, unsigned sh
 					{
 						for (threadIdx.z = 0; threadIdx.z < blockDim.z; ++threadIdx.z)
 						{
+							// Helpful debug code
 							// Conditional breakpoints in Visual Studio introduce significant performance impact.  It is better here to do this:
 							// Some copy-paste required for row/col calc to provide correct stopping pixel
 							/*int col = threadIdx.x + blockIdx.x * blockDim.x;
@@ -181,6 +211,11 @@ void KernelCPUEmulator(unsigned char* source, unsigned short oWidth, unsigned sh
 	}
 }
 
+/// <summary>
+/// Emulation of host code setup.  Currently hooked up to our naive bicubic implementation
+/// </summary>
+/// <param name="source">Source bitmap</param>
+/// <param name="dest">Destination bitmap</param>
 void DebugFeatures::emulator(Bitmap* source, Bitmap* dest)
 {
 	const int BlockSize = 32;

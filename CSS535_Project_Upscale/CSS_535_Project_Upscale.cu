@@ -14,6 +14,17 @@
 using namespace std;
 using namespace std::chrono;
 
+/// <summary>
+/// Debug function.  Prints bitmap into standard output.
+/// White pixels are spaces, black pixels are X,
+/// pure red, green, and blue pixels are R, G, and B
+/// all other mixed-channel color print as ?
+/// This is useful for simple test images
+/// </summary>
+/// <param name="matrix">Color channel array</param>
+/// <param name="width">Image width</param>
+/// <param name="height">Image height</param>
+/// <param name="pad">Padding dimension size</param>
 void print_matrix(unsigned char* matrix, unsigned short width, unsigned short height, int pad){
 	for (int y = 0; y < height; ++y)
 	{
@@ -38,6 +49,18 @@ void print_matrix(unsigned char* matrix, unsigned short width, unsigned short he
 	}
 }
 
+/// <summary>
+/// Nearest neighbor CUDA kernel (Naive)
+/// </summary>
+/// <param name="source">Source image color channel matrix</param>
+/// <param name="oWidth">Original image width</param>
+/// <param name="oHeight">Original image height</param>
+/// <param name="oPad">Original image padding size</param>
+/// <param name="dest">Destination image color matrix</param>
+/// <param name="nWidth">New image width</param>
+/// <param name="nHeight">New image height</param>
+/// <param name="nPad">New image padding size</param>
+/// <returns></returns>
 __global__ void NearestNeighbor(
 	unsigned char* source,
 	unsigned short oWidth,
@@ -85,6 +108,18 @@ __global__ void NearestNeighbor(
 	dest[index + 2] = source[oIndex + 2];
 }
 
+/// <summary>
+/// Bilinear neighbor CUDA kernel (Naive)
+/// </summary>
+/// <param name="source">Source image color channel matrix</param>
+/// <param name="oWidth">Original image width</param>
+/// <param name="oHeight">Original image height</param>
+/// <param name="oPad">Original image padding size</param>
+/// <param name="dest">Destination image color matrix</param>
+/// <param name="nWidth">New image width</param>
+/// <param name="nHeight">New image height</param>
+/// <param name="nPad">New image padding size</param>
+/// <returns></returns>
 __global__ void Bilinear(
 	unsigned char* source,
 	unsigned short oWidth,
@@ -171,6 +206,18 @@ __global__ void Bilinear(
 	}
 }
 
+/// <summary>
+/// Bicubic CUDA kernel (Naive)
+/// </summary>
+/// <param name="source">Source image color channel matrix</param>
+/// <param name="oWidth">Original image width</param>
+/// <param name="oHeight">Original image height</param>
+/// <param name="oPad">Original image padding size</param>
+/// <param name="dest">Destination image color matrix</param>
+/// <param name="nWidth">New image width</param>
+/// <param name="nHeight">New image height</param>
+/// <param name="nPad">New image padding size</param>
+/// <returns></returns>
 __global__ void Bicubic(
 	unsigned char* source,
 	unsigned short oWidth,
@@ -284,6 +331,19 @@ __global__ void Bicubic(
 	}
 }
 
+
+/// <summary>
+/// Nearest neighbor CUDA kernel (Conditional paths removed)
+/// </summary>
+/// <param name="source">Source image color channel matrix</param>
+/// <param name="oWidth">Original image width</param>
+/// <param name="oHeight">Original image height</param>
+/// <param name="oPad">Original image padding size</param>
+/// <param name="dest">Destination image color matrix</param>
+/// <param name="nWidth">New image width</param>
+/// <param name="nHeight">New image height</param>
+/// <param name="nPad">New image padding size</param>
+/// <returns></returns>
 __global__ void Bicubic2(
 	unsigned char* source,
 	unsigned short oWidth,
@@ -378,6 +438,18 @@ __global__ void Bicubic2(
 	}
 }
 
+/// <summary>
+/// Nearest neighbor CUDA kernel (Conditional paths removed and loops unrolled)
+/// </summary>
+/// <param name="source">Source image color channel matrix</param>
+/// <param name="oWidth">Original image width</param>
+/// <param name="oHeight">Original image height</param>
+/// <param name="oPad">Original image padding size</param>
+/// <param name="dest">Destination image color matrix</param>
+/// <param name="nWidth">New image width</param>
+/// <param name="nHeight">New image height</param>
+/// <param name="nPad">New image padding size</param>
+/// <returns></returns>
 __global__ void Bicubic3(
 	unsigned char* source,
 	unsigned short oWidth,
@@ -743,6 +815,11 @@ __global__ void Bicubic3(
 	dest[index + 2] = result;
 }
 
+/// <summary>
+/// Nearest neighbor host setup code
+/// </summary>
+/// <param name="source">Source bitmap</param>
+/// <param name="dest">Destination bitmap</param>
 void NearestNeighbor(Bitmap* source, Bitmap* dest)
 {
 	const int NearestNeighborBlockSize = 16;
@@ -779,6 +856,11 @@ void NearestNeighbor(Bitmap* source, Bitmap* dest)
 	cudaFree(upscaled_image_device);
 }
 
+/// <summary>
+/// Bilinear host setup code
+/// </summary>
+/// <param name="source">Source bitmap</param>
+/// <param name="dest">Destination bitmap</param>
 void Bilinear(Bitmap* source, Bitmap* dest)
 {
 	const int BilinearBlockSize = 16;
@@ -815,7 +897,11 @@ void Bilinear(Bitmap* source, Bitmap* dest)
 	cudaFree(upscaled_image_device);
 }
 
-
+/// <summary>
+/// Bicubic (Naive) host setup code
+/// </summary>
+/// <param name="source">Source bitmap</param>
+/// <param name="dest">Destination bitmap</param>
 void Bicubic(Bitmap* source, Bitmap* dest)
 {
 	const int BicubicBlockSize = 16;
@@ -852,7 +938,11 @@ void Bicubic(Bitmap* source, Bitmap* dest)
 	cudaFree(upscaled_image_device);
 }
 
-
+/// <summary>
+/// Bicubic (conditional removal) host setup code
+/// </summary>
+/// <param name="source">Source bitmap</param>
+/// <param name="dest">Destination bitmap</param>
 void Bicubic2(Bitmap* source, Bitmap* dest)
 {
 	const int BicubicBlockSize = 16;
@@ -889,6 +979,11 @@ void Bicubic2(Bitmap* source, Bitmap* dest)
 	cudaFree(upscaled_image_device);
 }
 
+/// <summary>
+/// Bicubic (conditional removal + unrolling) host setup code
+/// </summary>
+/// <param name="source">Source bitmap</param>
+/// <param name="dest">Destination bitmap</param>
 void Bicubic3(Bitmap* source, Bitmap* dest)
 {
 	const int BicubicBlockSize = 16;
@@ -925,6 +1020,10 @@ void Bicubic3(Bitmap* source, Bitmap* dest)
 	cudaFree(upscaled_image_device);
 }
 
+/// <summary>
+/// Run main pipeline
+/// </summary>
+/// <returns></returns>
 int main()
 {
 	Bitmap* nearestNeighborImageRaytracer = new Bitmap();
