@@ -6,8 +6,8 @@
 class DebugFeatures
 {
 public:
-	static unsigned int stopX;
-	static unsigned int stopY;
+	static unsigned short stopX;
+	static unsigned short stopY;
 	static void emulator(Bitmap* source, Bitmap* dest);
 };
 #endif

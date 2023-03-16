@@ -7,8 +7,8 @@ class Bitmap
 {
 public:
 	unsigned char* imageData;
-	unsigned int width;
-	unsigned int height;
+	unsigned short width;
+	unsigned short height;
 
 	bool readFromFile(const char* filepath);
 	bool init();
@@ -16,8 +16,8 @@ public:
 
 	unsigned int imageDataSize();
 	unsigned char padSize();
-	static unsigned int imageDataSize(unsigned int width, unsigned int height);
-	static unsigned char padSize(unsigned int width);
+	static unsigned int imageDataSize(unsigned short width, unsigned short height);
+	static unsigned char padSize(unsigned short width);
 
 	Bitmap();
 	~Bitmap();
