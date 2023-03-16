@@ -5,26 +5,52 @@
 
 using namespace std;
 
+/// <summary>
+/// Raw color data buffer size
+/// </summary>
+/// <returns>Size of image buffer</returns>
 unsigned int Bitmap::imageDataSize()
 {
 	return Bitmap::imageDataSize(this->width, this->height);
 }
 
+/// <summary>
+/// Size of end-of-row padding.  By bitmap specification rows must be 4 byte aligned
+/// but pixels are 3 bytes each.  If the row of pixels does not come to a multiple of 4
+/// then the spesification requires some padding be added
+/// </summary>
+/// <returns>Per-row padding size (possible values 0 through 3)</returns>
 unsigned char Bitmap::padSize()
 {
 	return Bitmap::padSize(this->width);
 }
 
+/// <summary>
+/// Compute raw color data size for given dimensions
+/// </summary>
+/// <param name="width">Image width</param>
+/// <param name="height">Image height</param>
+/// <returns>Size of image buffer</returns>
 unsigned int Bitmap::imageDataSize(unsigned short width, unsigned short height)
 {
 	return width * height * 3 + height * Bitmap::padSize(width);
 }
 
+/// <summary>
+/// Compute pad size for given image width
+/// </summary>
+/// <param name="width">Image width</param>
+/// <returns>Per-row padding size (possible values 0 through 3)</returns>
 unsigned char Bitmap::padSize(unsigned short width)
 {
 	return  (4 - (width * 3) % 4) % 4;
 }
 
+/// <summary>
+/// Read bitmap from file into object
+/// </summary>
+/// <param name="filepath">Path to file to use as input</param>
+/// <returns>True if operation successful</returns>
 bool Bitmap::readFromFile(const char* filepath)
 {
 	cout << "read " << filepath << endl;
@@ -37,6 +63,7 @@ bool Bitmap::readFromFile(const char* filepath)
 	if (!infile.is_open())
 	{
 		cout << "error" << endl;
+		return false;
 	}
 	unsigned char metadataHeader[40];
 	infile.ignore(14);
@@ -50,6 +77,10 @@ bool Bitmap::readFromFile(const char* filepath)
 	return true;
 }
 
+/// <summary>
+/// Initalize image buffer.  Used to set up/reset pixel data for a given pre-set height and width
+/// </summary>
+/// <returns>True if successful (no action taken if image has zero size</returns>
 bool Bitmap::init()
 {
 	if (this->imageData != NULL)
@@ -70,6 +101,11 @@ bool Bitmap::init()
 	return true;
 }
 
+/// <summary>
+/// Write image data out to file
+/// </summary>
+/// <param name="filepath">Path to file to use as output destination</param>
+/// <returns>True if successful</returns>
 bool Bitmap::writeToFile(const char* filepath)
 {
 	if (this->imageData == NULL)
@@ -86,7 +122,7 @@ bool Bitmap::writeToFile(const char* filepath)
 	}
 	header[0] = 0x42;
 	header[1] = 0x4d;
-
+	// Write file size (bytes) into metadata
 	unsigned int* p = reinterpret_cast<unsigned int*>(&header[2]);
 	*p = 14 + 40 + 3 * (this->width * this->height) * this->height * this->padSize();
 	header[10] = 0x36;
@@ -96,6 +132,7 @@ bool Bitmap::writeToFile(const char* filepath)
 	{
 		metadata[i] = 0x00;
 	}
+	// Write image size (dimensions) into metadata
 	metadata[0] = 0x28;
 	metadata[4] = this->width;
 	metadata[5] = this->width >> 8;
@@ -114,6 +151,9 @@ bool Bitmap::writeToFile(const char* filepath)
 	return true;
 }
 
+/// <summary>
+/// Construct 0x0 image with null ptr payload
+/// </summary>
 Bitmap::Bitmap()
 {
 	this->width = 0;
@@ -121,6 +161,9 @@ Bitmap::Bitmap()
 	this->imageData = NULL;
 }
 
+/// <summary>
+/// Deconstruct image and free memory
+/// </summary>
 Bitmap::~Bitmap()
 {
 	if (this->imageData != NULL)
