@@ -242,11 +242,11 @@ void KernelCPUEmulator(unsigned char* source, unsigned short oWidth, unsigned sh
 							int col = threadIdx.x + blockIdx.x * blockDim.x;
 							int row = threadIdx.y + blockIdx.y * blockDim.y;
 
-							if (col == DebugFeatures::stopX && row == DebugFeatures::stopY)
+							/*if (col == DebugFeatures::stopX && row == DebugFeatures::stopY)
 							{
 								// Set a breakpoint at this line to debug a particular pixel
 								cout << "";
-							}
+							}*/
 
 							CPUKernelDebug(source, oWidth, oHeight, oPad, dest, nWidth, nHeight, nPad);
 						}
