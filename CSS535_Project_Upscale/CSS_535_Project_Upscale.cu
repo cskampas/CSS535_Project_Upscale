@@ -872,7 +872,7 @@ __global__ void Bicubic4(
 
 void NearestNeighbor(Bitmap* source, Bitmap* dest)
 {
-	const int NearestNeighborBlockSize = 32;
+	const int NearestNeighborBlockSize = 16;
 	dest->init();
 
 	unsigned short oW = source->width;
@@ -908,7 +908,7 @@ void NearestNeighbor(Bitmap* source, Bitmap* dest)
 
 void Bilinear(Bitmap* source, Bitmap* dest)
 {
-	const int BilinearBlockSize = 32;
+	const int BilinearBlockSize = 16;
 	dest->init();
 
 	unsigned short oW = source->width;
@@ -945,7 +945,7 @@ void Bilinear(Bitmap* source, Bitmap* dest)
 
 void Bicubic(Bitmap* source, Bitmap* dest)
 {
-	const int BicubicBlockSize = 32;
+	const int BicubicBlockSize = 16;
 	dest->init();
 
 	unsigned short oW = source->width;
@@ -982,7 +982,7 @@ void Bicubic(Bitmap* source, Bitmap* dest)
 
 void Bicubic2(Bitmap* source, Bitmap* dest)
 {
-	const int BicubicBlockSize = 32;
+	const int BicubicBlockSize = 16;
 	dest->init();
 
 	unsigned short oW = source->width;
@@ -1018,7 +1018,7 @@ void Bicubic2(Bitmap* source, Bitmap* dest)
 
 void Bicubic3(Bitmap* source, Bitmap* dest)
 {
-	const int BicubicBlockSize = 32;
+	const int BicubicBlockSize = 16;
 	dest->init();
 
 	unsigned short oW = source->width;
@@ -1054,7 +1054,7 @@ void Bicubic3(Bitmap* source, Bitmap* dest)
 
 void Bicubic4(Bitmap* source, Bitmap* dest)
 {
-	const int BicubicBlockSize = 32;
+	const int BicubicBlockSize = 16;
 	dest->init();
 
 	unsigned short oW = source->width;
@@ -1090,15 +1090,15 @@ void Bicubic4(Bitmap* source, Bitmap* dest)
 
 int main()
 {
-	Bitmap* bicubicImageRaytracer = new Bitmap();
+	/*Bitmap* bicubicImageRaytracer = new Bitmap();
 	bicubicImageRaytracer->readFromFile("TestContent/raytracer.bmp");
 	Bitmap* bicubicImageRaytracerUpscale = new Bitmap();
 	bicubicImageRaytracerUpscale->width = 2000;
 	bicubicImageRaytracerUpscale->height = 2000;
 	Bicubic(bicubicImageRaytracer, bicubicImageRaytracerUpscale);
-	bicubicImageRaytracerUpscale->writeToFile("TestContent/raytracer_out.bmp");
+	bicubicImageRaytracerUpscale->writeToFile("TestContent/raytracer_out.bmp");*/
 
-	Bitmap* baseImage = new Bitmap();
+	/*Bitmap* baseImage = new Bitmap();
 	Bitmap* debugImage = new Bitmap();
 	Bitmap* nearestNeighborImage = new Bitmap();
 	Bitmap* bilinearImage = new Bitmap();
@@ -1118,9 +1118,9 @@ int main()
 	bicubicImage3->width = 2005;
 	bicubicImage3->height = 2005;
 	baseImage->readFromFile("TestContent/raytracer.bmp");
-	DebugFeatures::stopX = 5;
-	DebugFeatures::stopY = 50;
-	DebugFeatures::emulator(bicubicImageRaytracer, debugImage);
+	// DebugFeatures::stopX = 5;
+	// DebugFeatures::stopY = 50;
+	DebugFeatures::emulator(baseImage, debugImage);
 	NearestNeighbor(baseImage, nearestNeighborImage);
 	Bilinear(baseImage, bilinearImage);
 	Bicubic(baseImage, bicubicImage);
@@ -1131,7 +1131,55 @@ int main()
 	bilinearImage->writeToFile("TestContent/Test1Bilinear.bmp");
 	bicubicImage->writeToFile("TestContent/TestBicubic.bmp");
 	bicubicImage2->writeToFile("TestContent/TestBicubic2.bmp");
-	bicubicImage3->writeToFile("TestContent/TestBicubic3.bmp");
+	bicubicImage3->writeToFile("TestContent/TestBicubic3.bmp");*/
+
+	Bitmap* nearestNeighborImageRaytracer = new Bitmap();
+	nearestNeighborImageRaytracer->readFromFile("TestContent/raytracer.bmp");
+	Bitmap* nearestNeighborImageRaytracerUpscale = new Bitmap();
+	nearestNeighborImageRaytracerUpscale->width = 5000;
+	nearestNeighborImageRaytracerUpscale->height = 5000;
+	NearestNeighbor(nearestNeighborImageRaytracer, nearestNeighborImageRaytracerUpscale);
+	nearestNeighborImageRaytracerUpscale->writeToFile("TestContent/raytracer_newarest_neighbor.bmp");
+
+	Bitmap* bilinearImageRaytracer = new Bitmap();
+	bilinearImageRaytracer->readFromFile("TestContent/raytracer.bmp");
+	Bitmap* bilinearImageRaytracerUpscale = new Bitmap();
+	bilinearImageRaytracerUpscale->width = 5000;
+	bilinearImageRaytracerUpscale->height = 5000;
+	Bilinear(bilinearImageRaytracer, bilinearImageRaytracerUpscale);
+	bilinearImageRaytracerUpscale->writeToFile("TestContent/raytracer_bilinear.bmp");
+
+	Bitmap* bicubicImageRaytracer = new Bitmap();
+	bicubicImageRaytracer->readFromFile("TestContent/raytracer.bmp");
+	Bitmap* bicubicImageRaytracerUpscale = new Bitmap();
+	bicubicImageRaytracerUpscale->width = 5000;
+	bicubicImageRaytracerUpscale->height = 5000;
+	Bicubic(bicubicImageRaytracer, bicubicImageRaytracerUpscale);
+	bicubicImageRaytracerUpscale->writeToFile("TestContent/raytracer_bicubic.bmp");
+
+	Bitmap* bicubicImageRaytracer2 = new Bitmap();
+	bicubicImageRaytracer2->readFromFile("TestContent/raytracer.bmp");
+	Bitmap* bicubicImageRaytracerUpscale2 = new Bitmap();
+	bicubicImageRaytracerUpscale2->width = 5000;
+	bicubicImageRaytracerUpscale2->height = 5000;
+	Bicubic2(bicubicImageRaytracer2, bicubicImageRaytracerUpscale2);
+	bicubicImageRaytracerUpscale2->writeToFile("TestContent/raytracer_bicubic2.bmp");
+
+	Bitmap* bicubicImageRaytracer3 = new Bitmap();
+	bicubicImageRaytracer3->readFromFile("TestContent/raytracer.bmp");
+	Bitmap* bicubicImageRaytracerUpscale3 = new Bitmap();
+	bicubicImageRaytracerUpscale3->width = 5000;
+	bicubicImageRaytracerUpscale3->height = 5000;
+	Bicubic3(bicubicImageRaytracer3, bicubicImageRaytracerUpscale3);
+	bicubicImageRaytracerUpscale3->writeToFile("TestContent/raytracer_bicubic3.bmp");
+
+	Bitmap* bicubicImageRaytracer4 = new Bitmap();
+	bicubicImageRaytracer4->readFromFile("TestContent/raytracer.bmp");
+	Bitmap* bicubicImageRaytracerUpscale4 = new Bitmap();
+	bicubicImageRaytracerUpscale4->width = 5000;
+	bicubicImageRaytracerUpscale4->height = 5000;
+	DebugFeatures::emulator(bicubicImageRaytracer4, bicubicImageRaytracerUpscale4);
+	bicubicImageRaytracerUpscale4->writeToFile("TestContent/raytracer_bicubicCPU.bmp");
 
 	return 0;
 }
